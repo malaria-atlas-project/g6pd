@@ -1,0 +1,78 @@
+\documentclass[a4paper]{article}
+\usepackage{fullpage}
+\usepackage{epsfig}
+\usepackage{pdfsync} 
+\usepackage{amsfonts}
+\usepackage{amsmath} 
+\begin{document}
+
+\title{Notes on the IBD model}
+\author{Anand Patil}
+\maketitle
+
+\section{License} % (fold)
+\label{sec:license}
+This document is licensed under the Creative Commons attribution share-alike license, see \texttt{LICENSE} in the root directory. Copyright \copyright\ 2009 Anand Patil
+% section license (end)
+
+\section{Basics} % (fold)
+\label{sec:basics}
+
+The gene frequencies of HbS and other alleles will be written as $s$ and $a$ throughout. Similarly, the sickle-cell disease, sickle-cell trait and non-sickle-cell genotypes will be written as $SS$, $SA$ and $AA$.
+
+
+The five gene frequencies and genotype frequencies have to obey three linearly independent constraints:
+\begin{eqnarray*}
+    a+s=1\\
+    a=AA+\frac{AS}{2}\\
+    s=SS+\frac{AS}{2}.
+\end{eqnarray*}
+That means that, in addition to the genotype frequencies, one additional unknown variable determines the genotype frequencies. The parameterizations chosen most often are:
+\begin{eqnarray*}
+\begin{array}{c}AA=a^2(1-f)+af\\AS=2as(1-f)\\SS=s^2(1-f)+sf\end{array} &\textup{and}&
+\begin{array}{c}AA=a^2+m\\AS=2as-2m\\SS=s^2+m\end{array}.
+\end{eqnarray*}
+Any population's genotype frequencies can be parameterized this way; this mathematical fact is not dependent on population dynamics, mating behavior, selection or anything else. However, the usual interpretation of $f$ as a measure of inbreeding \emph{does} require additional assumptions. 
+
+For example, say the frequencies $a$ and $s$ have stabilized under selection in a population. Say that a sample of adults is taken, which does not find any $SS$ individuals due to high childhood mortality. Assume further that the population mates randomly, so that in newborns the Hardy-Weinberg frequencies apply:
+\begin{eqnarray*}
+    AA_0 = a_0^2\\
+    AS_0 = 2a_0s_0\\
+    SS_0 = s_0^2.
+\end{eqnarray*}
+The adult sample will be in proportions 
+\begin{eqnarray*}
+    AA:&\frac{a_0^2}{1-s_0^2}\\
+    AS:&\frac{2a_0s_0}{1-s_0^2}\\
+    SS:&0
+\end{eqnarray*}
+with gene frequencies
+\begin{eqnarray*}
+    a:&\frac{a_0+s_0}{a_0+2s_0}\\
+    s:&\frac{s_0}{a_0+2s_0}
+\end{eqnarray*}
+meaning $f$ is equal to $s_0/(a_0+s_0)$ even though there is no inbreeding.
+
+\bigskip
+$f$ and $m$ have a probabilistic interpretation. The probability of finding $a$ on the second chromosome in an individual given that $a$ was found on the first is equal to $a(1-f)+f$, or equivalently $a+m/a$. If $m$ is zero, or equivalently $f$ is zero, then the event that $a$ is found on the second chromosome is independent of the event that it is found on the first and you get the Hardy-Weinberg proportions:
+\begin{eqnarray*}
+    AA=a^2\\
+    AS=2as\\
+    SS=s^2.
+\end{eqnarray*}
+% section basics (end)
+
+\section{Model options} % (fold)
+\label{sec:model_options}
+
+Can have
+\begin{eqnarray*}
+    s_o|s\sim\ldots
+    s|M_\phi,C_\phi\sim\ldots\\
+    \phi\sim\ldots
+\end{eqnarray*}
+or include heterozygote deficiency $m$ as a stochastic variable and include genotype frequencies as data. Genotype frequencies will be heavily depedent on age (though gene frequencies will be also), so you would probably not be able to get away without modeling mortality rate.
+
+% section model_options (end)
+
+\end{document}

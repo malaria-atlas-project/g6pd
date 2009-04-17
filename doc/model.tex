@@ -27,6 +27,12 @@ The five gene frequencies and genotype frequencies have to obey three linearly i
     a=AA+\frac{AS}{2}\\
     s=SS+\frac{AS}{2}.
 \end{eqnarray*}
+and one nonlinear constraint:
+% TODO: Show that the other nonlinear constraint is redundant.
+% TODO: Gaussian eliminate the linear constraints and then apply the nonlinear constraints.
+\begin{eqnarray*}
+    \frac{SS}{s}=1-\frac{AS}{a}
+\end{eqnarray*}
 That means that, in addition to the genotype frequencies, one additional unknown variable determines the genotype frequencies. The parameterizations chosen most often are:
 \begin{eqnarray*}
 \begin{array}{c}AA=a^2(1-f)+af\\AS=2as(1-f)\\SS=s^2(1-f)+sf\end{array} &\textup{and}&

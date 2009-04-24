@@ -1,4 +1,4 @@
-The Malaria Atlas Project's *Plasmodium falciparum* cartography code
+The Malaria Atlas Project's *inherited* *blood* *disorder* cartography code
 ====================================================================
 
 This project consists mostly of code associated with

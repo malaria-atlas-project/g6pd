@@ -1,9 +1,5 @@
-The Malaria Atlas Project's *inherited* *blood* *disorder* cartography code
-====================================================================
-
-This project consists mostly of code associated with
-
-Hay, S.I., Guerra, C.A., Gething, P.W., Patil, A.P., Tatem, A.J., Noor, A.M., Kabaria, C.W., Manh, B.H.,F. Elyazar, I.A.F., Brooker, S., Smith, D.L., Moyeed, R.A., and Snow, R.W., 2009. **A World Malaria Map: *Plasmodium falciparum* Endemicity in 2007.** PLoS Medicine, 6, e1000048
+The Malaria Atlas Project's inherited blood disorder cartography code
+=====================================================================
 
 The purposes of this repository are to make our code available to people who would like to check or extend our work, and to synchronize it across multiple computers. Do not expect to be able to simply download and run anything here.
 

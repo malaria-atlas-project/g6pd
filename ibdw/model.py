@@ -11,7 +11,7 @@ from map_utils import basic_spatial_submodel
 
 __all__ = ['make_model']
     
-def make_model(s_obs,a_obs,lon,lat,covariate_values,cpus=1):
+def make_model(s_obs,a_obs,lon,lat,covariate_values):
     """
     """
 
@@ -21,7 +21,7 @@ def make_model(s_obs,a_obs,lon,lat,covariate_values,cpus=1):
     while not init_OK:
         try:        
             # Space-time component
-            sp_sub = basic_spatial_submodel(lon, lat, covariate_values, cpus)        
+            sp_sub = basic_spatial_submodel(lon, lat, covariate_values)        
 
             # The field evaluated at the uniquified data locations
             f = pm.MvNormalCov('f', sp_sub['M_eval'], sp_sub['C_eval'])            

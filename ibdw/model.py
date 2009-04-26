@@ -37,6 +37,6 @@ def make_model(s_obs,a_obs,lon,lat,covariate_values):
     
     s = pm.InvLogit('s',eps_p_f)
 
-    data = pm.Binomial('data', s_obs + a_obs, s, value=s_obs)
+    data = pm.Binomial('data', s_obs + a_obs, s, value=s_obs, observed=True)
 
     return locals()

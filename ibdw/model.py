@@ -20,12 +20,24 @@ def make_model(s_obs,a_obs,lon,lat,covariate_values,cpus=1):
     covariate_values : {'ndvi': array, 'rainfall': array} etc.
     cpus : int
     """
-        
-        # Space-time component
-        st_sub = basic_spatial_submodel(lon, lat, covariate_values, cpus)
+
+        init_OK = False
+        while not init_OK:
+            
+            # Space-time component
+            sp_sub = basic_spatial_submodel(lon, lat, covariate_values, cpus)        
+
+            # The field evaluated at the uniquified data locations
+            f = pm.MvNormalCov('f', sp_sub['M_eval'], sp_sub['C_eval'])            
+            
+            init_OK = True
+        except pm.ZeroProbability, msg:
+            print 'Trying again: %s'%msg
+            init_OK = False
+            gc.collect()
             
         # The field plus the nugget
-        eps_p_f = pm.Normal('eps_p_f', st_sub['f'], st_sub['V'])
+        eps_p_f = pm.Normal('eps_p_f', f, st_sub['V'])
         
         s = pm.InvLogit('s',eps_p_f)
     

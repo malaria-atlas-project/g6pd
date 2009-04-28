@@ -11,7 +11,7 @@ from map_utils import basic_spatial_submodel
 
 __all__ = ['make_model']
     
-def make_model(s_obs,a_obs,lon,lat,covariate_values):
+def make_model(s_obs,a_obs,lon,lat,from_ind,covariate_values):
     """
     """
 
@@ -33,10 +33,14 @@ def make_model(s_obs,a_obs,lon,lat,covariate_values):
             gc.collect()
         
     # The field plus the nugget
-    eps_p_f = pm.Normal('eps_p_f', f, V)
+    eps_p_f = pm.Normal('eps_p_f', f[from_ind], V)
     
     s = pm.InvLogit('s',eps_p_f)
 
     data = pm.Binomial('data', s_obs + a_obs, s, value=s_obs, observed=True)
 
-    return locals()
+    out = locals()
+    out.pop('sp_sub')
+    out.update(sp_sub)
+
+    return out

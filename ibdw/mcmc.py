@@ -45,6 +45,6 @@ for s in M.stochastics | M.deterministics | M.potentials:
     s.verbose = 0
 M.use_step_method(FieldStepper, M.f, 1./M.V, M.V, M.C_eval, M.M_eval, M.logp_mesh, M.eps_p_f, to_ind, jump_tau = False)
 M.isample(500000,0,100, verbose=0)
-from pylab import *
-plot(M.trace('f')[:])
+# from pylab import *
+# plot(M.trace('f')[:])
 # M.use_step_method(FieldStepper, M.f, 1./M.V, M.V, M.C_eval, M.M_eval, M.logp_mesh, M.eps_p_f, ti, jump_tau=False)

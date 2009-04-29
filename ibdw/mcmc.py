@@ -37,10 +37,14 @@ to_ind = [np.where(from_ind == i)[0] for i in xrange(max(from_ind)+1)]
 lon = np.array(locs)[:,0]
 lat = np.array(locs)[:,1]
 
+# TODO TOMORROW: specialize f.logp_fun to print what it's returning before returning.
+
 M=pm.MCMC(make_model(fdata['as'].data,fdata['as'].data + fdata.n.data*2.,lon,lat,from_ind,{}), db='hdf5', dbname=os.path.basename(fname)+'.hdf5')
-M.use_step_method(pm.AdaptiveMetropolis, list(M.stochastics -set([M.f, M.eps_p_f])))
+M.use_step_method(pm.AdaptiveMetropolis, list(M.stochastics -set([M.f, M.eps_p_f])), verbose=0, delay=50000)
+for s in M.stochastics | M.deterministics | M.potentials:
+    s.verbose = 0
 M.use_step_method(FieldStepper, M.f, 1./M.V, M.V, M.C_eval, M.M_eval, M.logp_mesh, M.eps_p_f, to_ind, jump_tau = False)
-M.isample(100000,0,100)
+M.isample(100000,0,100, verbose=0)
 from pylab import *
 plot(M.trace('f')[:])
 # M.use_step_method(FieldStepper, M.f, 1./M.V, M.V, M.C_eval, M.M_eval, M.logp_mesh, M.eps_p_f, ti, jump_tau=False)

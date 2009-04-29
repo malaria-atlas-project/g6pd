@@ -23,9 +23,9 @@ def make_model(s_obs,a_obs,lon,lat,from_ind,covariate_values):
             # Space-time component
             sp_sub = basic_spatial_submodel(lon, lat, covariate_values)        
 
-            # The field evaluated at the uniquified data locations
-            f = pm.MvNormalCov('f', sp_sub['M_eval'], sp_sub['C_eval'])            
-        
+            # The field evaluated at the uniquified data locations            
+            f = pm.MvNormalCov('f', sp_sub['M_eval'], sp_sub['C_eval'])
+            
             init_OK = True
         except pm.ZeroProbability, msg:
             print 'Trying again: %s'%msg

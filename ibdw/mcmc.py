@@ -29,7 +29,6 @@ s_obs = s_obs[where_interpretable].astype('int')
 a_obs = a_obs[where_interpretable].astype('int')
 
 
-
 fdata = data[where_interpretable]
 locs = []
 from_ind = []

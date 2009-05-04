@@ -5,7 +5,7 @@ import pymc as pm
 from map_utils import FieldStepper
 import os
 
-fname = '../data260409.csv'
+fname = '../ibd_loc_all_030509.csv'
 # landmass = 'Africa'
 # 
 # landmasses = {'Eurasia': ['Europe','Asia','Oceania'],
@@ -13,8 +13,24 @@ fname = '../data260409.csv'
 #                 'America': ['America']}
 
 data = csv2rec(fname)
-# fdata = data[np.where(np.sum([data.continent == c for c in landmasses[landmass]],axis=0))]
-fdata = data
+
+s_obs_gen = data['as']
+a_obs_gen = data['as'] + data.n*2.
+
+s_obs_af = data['hbs_gf']*.01 * data['n']
+a_obs_af = (1.-data['hbs_gf']*.01) * data['n']
+
+s_obs = np.choose(s_obs_gen.mask, [s_obs_gen.data, s_obs_af.data])
+a_obs = np.choose(a_obs_gen.mask, [a_obs_gen.data, a_obs_af.data])
+
+where_interpretable = np.where(1-(s_obs_af.mask & s_obs_gen.mask))
+
+s_obs = s_obs[where_interpretable].astype('int')
+a_obs = a_obs[where_interpretable].astype('int')
+
+
+
+fdata = data[where_interpretable]
 locs = []
 from_ind = []
 locs = [(float(fdata[0].long), float(fdata[0].lat))]
@@ -37,9 +53,9 @@ to_ind = [np.where(from_ind == i)[0] for i in xrange(max(from_ind)+1)]
 lon = np.array(locs)[:,0]
 lat = np.array(locs)[:,1]
 
-# TODO TOMORROW: specialize f.logp_fun to print what it's returning before returning.
 
-M=pm.MCMC(make_model(fdata['as'].data,fdata['as'].data + fdata.n.data*2.,lon,lat,from_ind,{}), db='hdf5', dbname=os.path.basename(fname)+'.hdf5', complevel=1)
+
+M=pm.MCMC(make_model(s_obs,s_obs+a_obs,lon,lat,from_ind,{}), db='hdf5', dbname=os.path.basename(fname)+'.hdf5', complevel=1)
 M.use_step_method(pm.AdaptiveMetropolis, list(M.stochastics -set([M.f, M.eps_p_f])), verbose=0, delay=50000)
 for s in M.stochastics | M.deterministics | M.potentials:
     s.verbose = 0

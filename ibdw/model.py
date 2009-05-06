@@ -21,7 +21,7 @@ def make_model(s_obs,a_obs,lon,lat,from_ind,covariate_values):
     while not init_OK:
         try:        
             # Space-time component
-            sp_sub = basic_spatial_submodel(lon, lat, covariate_values)        
+            sp_sub = basic_spatial_submodel(lon, lat, covariate_values)    
 
             # The field evaluated at the uniquified data locations            
             f = pm.MvNormalCov('f', sp_sub['M_eval'], sp_sub['C_eval'])
@@ -33,7 +33,7 @@ def make_model(s_obs,a_obs,lon,lat,from_ind,covariate_values):
             gc.collect()
         
     # The field plus the nugget
-    eps_p_f = pm.Normal('eps_p_f', f[from_ind], V)
+    eps_p_f = pm.Normal('eps_p_f', f[from_ind], 1./V)
     
     s = pm.InvLogit('s',eps_p_f)
 

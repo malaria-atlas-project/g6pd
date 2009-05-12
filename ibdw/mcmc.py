@@ -2,7 +2,6 @@ import numpy as np
 from model import *
 from pylab import csv2rec
 import pymc as pm
-from map_utils import FieldStepper
 import os
 
 fname = '../ibd_loc_all_030509.csv'
@@ -54,7 +53,9 @@ lat = np.array(locs)[:,1]
 
 
 
-M=pm.MCMC(make_model(s_obs,s_obs+a_obs,lon,lat,from_ind,{}), db='hdf5', dbname=os.path.basename(fname)+'.hdf5', complevel=1)
+M=pm.MCMC(make_model(s_obs,s_obs+a_obs,lon,lat,from_ind,{}), db='hdf5', dbname=os.path.basename(fname)+'_matern.hdf5', complevel=1)
+M.db._h5file.createGroup('/','metadata')
+M.db._h5file.createArray('/metadata','logp_mesh',M.logp_mesh)
 M.use_step_method(pm.AdaptiveMetropolis, list(M.stochastics -set([M.f, M.eps_p_f])), verbose=0, delay=50000)
 for s in M.stochastics | M.deterministics | M.potentials:
     s.verbose = 0

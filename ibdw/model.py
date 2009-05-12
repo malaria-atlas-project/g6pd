@@ -7,15 +7,36 @@
 import numpy as np
 import pymc as pm
 import gc
-from map_utils import basic_spatial_submodel
+from map_utils import basic_spatial_submodel, invlogit
 
-__all__ = ['make_model']
+__all__ = ['make_model','postproc','f_name','x_name','nugget_name','f_has_nugget','metadata_keys']
     
 def make_model(s_obs,a_obs,lon,lat,from_ind,covariate_values):
     """
     """
+    
+    locs = [(lon[0], lat[0]))]
+    fi = [0]
+    for i in xrange(1,len(lon)):
 
-    V = pm.Exponential('V',.1,value=1.)
+        # If repeat location, add observation
+        loc = (lon[i], lat[i])
+        if loc in locs:
+            fi.append(locs.index(loc))
+
+        # Otherwise, new obs
+        else:
+            locs.append(loc)
+            fi.append(max(fi)+1)
+    fi = np.array(fi)
+    ti = [np.where(fi == i)[0] for i in xrange(max(fi)+1)]
+
+    lon = np.array(locs)[:,0]
+    lat = np.array(locs)[:,1]
+    
+
+    # V = pm.Exponential('V',.1,value=1.)
+    V = pm.OneOverX('V',value=1.)
 
     init_OK = False
     while not init_OK:
@@ -44,3 +65,19 @@ def make_model(s_obs,a_obs,lon,lat,from_ind,covariate_values):
     out.update(sp_sub)
 
     return out
+    
+# Stuff mandated by the new map_utils standard
+
+# f_name = 'f'
+# x_name = 'logp_mesh'
+# f_has_nugget = False
+# nugget_name = 'V'
+
+f_name = 'eps_p_f'
+x_name = 'data_mesh'
+f_has_nugget = True
+nugget_name = 'V'
+metadata_keys = ['data_mesh','from_ind','to_ind']
+
+
+postproc = invlogit

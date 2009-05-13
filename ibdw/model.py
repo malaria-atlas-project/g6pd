@@ -39,9 +39,12 @@ def ibd_spatial_submodel():
     # Create the covariance & its evaluation at the data locations.
     @pm.deterministic(trace=True)
     def C(amp=amp, scale=scale, inc=inc, ecc=ecc, diff_degree=diff_degree):
+        """A covariance function created from the current parameter values."""
         return pm.gp.FullRankCovariance(pm.gp.cov_funs.matern.aniso_geo_rad, amp=amp, scale=scale, inc=inc, ecc=ecc, diff_degree=diff_degree)
     
     return locals()
+    
+grainsize = 30
     
 def make_model(pos,neg,lon,lat,covariate_values,cpus=1):
     """
@@ -88,15 +91,32 @@ def make_model(pos,neg,lon,lat,covariate_values,cpus=1):
 
             # The field evaluated at the uniquified data locations            
             f = pm.MvNormalCov('f', M_eval, C_eval)
+            # Make f start somewhere a bit sane
+            f.value = f.value - np.mean(f.value)
         
-            # The field plus the nugget
-            eps_p_f = pm.Normal('eps_p_f', f[fi], 1./sp_sub['V'], value=pm.logit(s_hat))
+            # Loop over data clusters
+            eps_p_f_d = []
+            s_d = []
+            data_d = []
 
-            # The allele frequency
-            s = pm.InvLogit('s',eps_p_f)
-            
-            # The observed allele frequencies
-            data = pm.Binomial('data', pos+neg, s, value=pos, observed=True)
+            for i in xrange(len(ti)):
+                if len(ti[i])==0:
+                    continue
+                # Nuggeted field in this cluster
+                f_i = pm.Lambda('fi',lambda f=f,i=i: f[i])
+                eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, f_i, 1./sp_sub['V'], size=len(ti[i]), value=pm.logit(s_hat[ti[i]]),trace=False))
+
+                # The allele frequency
+                s_d.append(pm.InvLogit('s_%i'%i,eps_p_f_d[-1],trace=False))
+
+                # The observed allele frequencies
+                data_d.append(pm.Binomial('data_%i'%i, pos[ti[i]]+neg[ti[i]], s_d[-1], value=pos[ti[i]], observed=True))
+
+            # The field plus the nugget
+            @pm.deterministic
+            def eps_p_f(eps_p_fd = eps_p_f_d):
+                """Concatenated version of eps_p_f, for postprocessing & Gibbs sampling purposes"""
+                return np.concatenate(eps_p_fd)
             
             init_OK = True
         except pm.ZeroProbability, msg:

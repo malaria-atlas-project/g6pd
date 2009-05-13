@@ -6,7 +6,7 @@ The purposes of this repository are to make our code available to people who wou
 License
 -------
 
-Copyright (c) 2009 Anand Patil and Peter Gething.
+Copyright (c) 2009 Anand Patil, Peter Gething, Frederic Piel and Rosalind Howes.
 All code in this repository is licensed under the Creative Commons attribution share-alike license, see LICENSE in this directory.
 
 Authors

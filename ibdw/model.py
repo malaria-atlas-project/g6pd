@@ -44,12 +44,14 @@ def ibd_spatial_submodel():
     
     return locals()
     
-grainsize = 30
     
 def make_model(pos,neg,lon,lat,covariate_values,cpus=1):
     """
     This function is required by the generic MBG code.
     """
+    
+    # How many nuggeted field points to handle with each step method
+    grainsize = 10
         
     # Non-unique data locations
     data_mesh = combine_spatial_inputs(lon, lat)
@@ -99,19 +101,17 @@ def make_model(pos,neg,lon,lat,covariate_values,cpus=1):
             s_d = []
             data_d = []
 
-            for i in xrange(len(ti)):
-                if len(ti[i])==0:
-                    continue
+            for i in xrange(len(pos)/grainsize+1):
+                sl = slice(i*grainsize,(i+1)*grainsize,None)
                 # Nuggeted field in this cluster
-                f_i = pm.Lambda('fi',lambda f=f,i=i: f[i])
-                eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, f_i, 1./sp_sub['V'], size=len(ti[i]), value=pm.logit(s_hat[ti[i]]),trace=False))
+                eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, f[fi[sl]], 1./sp_sub['V'], value=pm.logit(s_hat[sl]),trace=False))
 
                 # The allele frequency
                 s_d.append(pm.InvLogit('s_%i'%i,eps_p_f_d[-1],trace=False))
 
                 # The observed allele frequencies
-                data_d.append(pm.Binomial('data_%i'%i, pos[ti[i]]+neg[ti[i]], s_d[-1], value=pos[ti[i]], observed=True))
-
+                data_d.append(pm.Binomial('data_%i'%i, pos[sl]+neg[sl], s_d[-1], value=pos[sl], observed=True))
+            
             # The field plus the nugget
             @pm.deterministic
             def eps_p_f(eps_p_fd = eps_p_f_d):

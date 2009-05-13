@@ -11,7 +11,7 @@ from map_utils import *
 
 __all__ = ['make_model','postproc','f_name','x_name','nugget_name','f_has_nugget','metadata_keys','step_method_orders']
 
-def ibd_spatial_submodel():
+def ibd_covariance_submodel():
     """
     A small function that creates the mean and covariance object
     of the random field.
@@ -89,7 +89,7 @@ def make_model(pos,neg,lon,lat,covariate_values,cpus=1):
     while not init_OK:
         try:        
             # Space-time component
-            sp_sub = ibd_spatial_submodel()    
+            sp_sub = ibd_covariance_submodel()    
             covariate_dict, C_eval = cd_and_C_eval(covariate_values, sp_sub['C'], logp_mesh)
 
             # The field evaluated at the uniquified data locations            

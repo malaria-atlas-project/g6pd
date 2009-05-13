@@ -29,6 +29,7 @@ def ibd_spatial_submodel():
     # 1 radian = the radius of the earth, about 6378.1 km
     scale_shift = pm.Exponential('scale_shift', 1./.08, value=.08)
     scale = pm.Lambda('scale',lambda s=scale_shift: s+.01)
+    scale_in_km = scale * 6378.1
     
     # This parameter controls the degree of differentiability of the field.
     diff_degree = pm.Uniform('diff_degree', .01, 3)

@@ -64,6 +64,7 @@ def make_model(pos,neg,lon,lat,covariate_values,cpus=1):
     # Uniquify the data locations.
     locs = [(lon[0], lat[0])]
     fi = [0]
+    ui = [0]
     for i in xrange(1,len(lon)):
 
         # If repeat location, add observation
@@ -75,8 +76,10 @@ def make_model(pos,neg,lon,lat,covariate_values,cpus=1):
         else:
             locs.append(loc)
             fi.append(max(fi)+1)
+            ui.append(i)
     fi = np.array(fi)
     ti = [np.where(fi == i)[0] for i in xrange(max(fi)+1)]
+    ui = np.asarray(ui)
 
     lon = np.array(locs)[:,0]
     lat = np.array(locs)[:,1]
@@ -92,7 +95,7 @@ def make_model(pos,neg,lon,lat,covariate_values,cpus=1):
         try:        
             # Space-time component
             sp_sub = ibd_covariance_submodel()    
-            covariate_dict, C_eval = cd_and_C_eval(covariate_values, sp_sub['C'], logp_mesh)
+            covariate_dict, C_eval = cd_and_C_eval(covariate_values, sp_sub['C'], data_mesh, ui)
 
             # The field evaluated at the uniquified data locations            
             f = pm.MvNormalCov('f', M_eval, C_eval)
@@ -145,6 +148,6 @@ f_name = 'eps_p_f'
 x_name = 'data_mesh'
 f_has_nugget = True
 nugget_name = 'V'
-metadata_keys = ['data_mesh','fi','ti']
+metadata_keys = ['fi','ti','ui']
 postproc = invlogit
 step_method_orders = {'f':(FieldStepper, )}

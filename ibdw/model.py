@@ -27,8 +27,10 @@ def ibd_covariance_submodel():
     
     # The range parameter. Units are RADIANS. 
     # 1 radian = the radius of the earth, about 6378.1 km
-    scale_shift = pm.Exponential('scale_shift', 1./.08, value=.08)
-    scale = pm.Lambda('scale',lambda s=scale_shift: s+.01)
+    scale = pm.Exponential('scale', .1, value=.08)
+    
+    # scale_shift = pm.Exponential('scale_shift', .1, value=.08)
+    # scale = pm.Lambda('scale',lambda s=scale_shift: s+.01)
     scale_in_km = pm.Lambda('scale_in_km',lambda scale=scale: scale*6378.1)
     
     # This parameter controls the degree of differentiability of the field.

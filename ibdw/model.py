@@ -8,6 +8,7 @@ import numpy as np
 import pymc as pm
 import gc
 from map_utils import *
+from generic_mbg import *
 
 __all__ = ['make_model','postproc','f_name','x_name','nugget_name','f_has_nugget','metadata_keys','step_method_orders','diag_safe']
 

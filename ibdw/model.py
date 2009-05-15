@@ -11,6 +11,18 @@ from map_utils import *
 
 __all__ = ['make_model','postproc','f_name','x_name','nugget_name','f_has_nugget','metadata_keys','step_method_orders','diag_safe']
 
+def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, inc, ecc, diff_degree):
+    """
+    A nested covariance funcion with a smooth, anisotropic long-scale part
+    and a rough, isotropic short-scale part.
+    """
+    amp_short = amp*amp_short_frac
+    amp_long = amp*(1-amp_short_frac)
+    short_part = pm.gp.matern.geo_rad(x,y,diff_degree,amp_short,scale_short)
+    long_part = pm.gp.gaussian.aniso_geo_rad(x,y,ecc,inc,amp_long,scale_long)
+    return short_part + long_part
+    
+
 def ibd_covariance_submodel():
     """
     A small function that creates the mean and covariance object
@@ -28,13 +40,23 @@ def ibd_covariance_submodel():
     # The partial sill.
     amp = pm.Exponential('amp', .1, value=1.)
     
-    # The range parameter. Units are RADIANS. 
+    # The range parameters. Units are RADIANS. 
     # 1 radian = the radius of the earth, about 6378.1 km
-    scale = pm.Exponential('scale', 1./.08, value=.08)
+    scale_short = pm.Exponential('scale_short', .1, value=.08)
+    scale_long = pm.Exponential('scale_long', .1, value=1.)
+    
+    @pm.potential
+    def scale_watcher(short=scale_short,long=scale_long):
+        """A constraint: the 'long' scale must be bigger than the 'short' scale."""
+        if long>short:
+            return 0
+        else:
+            return -np.Inf
     
     # scale_shift = pm.Exponential('scale_shift', .1, value=.08)
     # scale = pm.Lambda('scale',lambda s=scale_shift: s+.01)
-    scale_in_km = scale*6378.1
+    scale_short_in_km = scale_short*6378.1
+    scale_long_in_km = scale_long*6378.1
     
     # This parameter controls the degree of differentiability of the field.
     diff_degree = pm.Uniform('diff_degree', .01, 3)
@@ -44,9 +66,10 @@ def ibd_covariance_submodel():
     
     # Create the covariance & its evaluation at the data locations.
     @pm.deterministic(trace=True)
-    def C(amp=amp, scale=scale, inc=inc, ecc=ecc, diff_degree=diff_degree):
+    def C(amp=amp, amp_short_frac=amp_short_frac, scale_short=scale_short, scale_long=scale_long, inc=inc, ecc=ecc, diff_degree=diff_degree):
         """A covariance function created from the current parameter values."""
-        return pm.gp.FullRankCovariance(pm.gp.cov_funs.matern.aniso_geo_rad, amp=amp, scale=scale, inc=inc, ecc=ecc, diff_degree=diff_degree)
+        return pm.gp.FullRankCovariance(nested_covariance_fn, amp=amp, amp_short_frac=amp_short_frac, scale_short=scale_short, 
+                    scale_long=scale_long, inc=inc, ecc=ecc, diff_degree=diff_degree)
     
     return locals()
     

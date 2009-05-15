@@ -20,7 +20,7 @@ def ibd_covariance_submodel():
     # Anisotropy parameters.
     inc = pm.CircVonMises('inc', 0, 0)
     sqrt_ecc = pm.Uniform('sqrt_ecc', 0, .95)
-    ecc = pm.Lambda('ecc', lambda s=sqrt_ecc: s**2)
+    ecc = s**2
     
     # The partial sill.
     amp = pm.Exponential('amp', .1, value=1.)
@@ -31,7 +31,7 @@ def ibd_covariance_submodel():
     
     # scale_shift = pm.Exponential('scale_shift', .1, value=.08)
     # scale = pm.Lambda('scale',lambda s=scale_shift: s+.01)
-    scale_in_km = pm.Lambda('scale_in_km',lambda scale=scale: scale*6378.1)
+    scale_in_km = scale*6378.1
     
     # This parameter controls the degree of differentiability of the field.
     diff_degree = pm.Uniform('diff_degree', .01, 3)

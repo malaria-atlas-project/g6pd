@@ -20,7 +20,7 @@ def ibd_covariance_submodel():
     # Anisotropy parameters.
     inc = pm.CircVonMises('inc', 0, 0)
     sqrt_ecc = pm.Uniform('sqrt_ecc', 0, .95)
-    ecc = s**2
+    ecc = sqrt_ecc**2
     
     # The partial sill.
     amp = pm.Exponential('amp', .1, value=1.)

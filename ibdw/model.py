@@ -9,7 +9,7 @@ import pymc as pm
 import gc
 from map_utils import *
 
-__all__ = ['make_model','postproc','f_name','x_name','nugget_name','f_has_nugget','metadata_keys','step_method_orders']
+__all__ = ['make_model','postproc','f_name','x_name','nugget_name','f_has_nugget','metadata_keys','step_method_orders','diag_safe']
 
 def ibd_covariance_submodel():
     """
@@ -21,6 +21,9 @@ def ibd_covariance_submodel():
     inc = pm.CircVonMises('inc', 0, 0)
     sqrt_ecc = pm.Uniform('sqrt_ecc', 0, .95)
     ecc = sqrt_ecc**2
+    
+    # The fraction of the partial sill going to 'short' variation.
+    amp_short_frac = pm.Uniform('amp_short_frac',0,1)
     
     # The partial sill.
     amp = pm.Exponential('amp', .1, value=1.)
@@ -144,6 +147,7 @@ def make_model(pos,neg,lon,lat,covariate_values,cpus=1):
 # f_has_nugget = False
 # nugget_name = 'V'
 
+diag_safe = True
 f_name = 'eps_p_f'
 x_name = 'data_mesh'
 f_has_nugget = True

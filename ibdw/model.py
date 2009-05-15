@@ -9,7 +9,7 @@ import pymc as pm
 import gc
 from map_utils import *
 
-__all__ = ['make_model','postproc','f_name','x_name','nugget_name','f_has_nugget','metadata_keys','step_method_orders']
+__all__ = ['make_model','postproc','f_name','x_name','nugget_name','f_has_nugget','metadata_keys','step_method_orders','diag_safe']
 
 def ibd_covariance_submodel():
     """
@@ -144,6 +144,7 @@ def make_model(pos,neg,lon,lat,covariate_values,cpus=1):
 # f_has_nugget = False
 # nugget_name = 'V'
 
+diag_safe = True
 f_name = 'eps_p_f'
 x_name = 'data_mesh'
 f_has_nugget = True

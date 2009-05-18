@@ -12,16 +12,17 @@ from generic_mbg import *
 
 __all__ = ['make_model','postproc','f_name','x_name','nugget_name','f_has_nugget','metadata_keys','step_method_orders','diag_safe']
 
-def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, inc, ecc, diff_degree):
+def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, inc, ecc, diff_degree, symm=False):
     """
     A nested covariance funcion with a smooth, anisotropic long-scale part
     and a rough, isotropic short-scale part.
     """
     amp_short = amp*amp_short_frac
     amp_long = amp*(1-amp_short_frac)
-    short_part = pm.gp.matern.geo_rad(x,y,diff_degree,amp_short,scale_short)
-    long_part = pm.gp.gaussian.aniso_geo_rad(x,y,ecc,inc,amp_long,scale_long)
-    return short_part + long_part
+    out = pm.gp.matern.geo_rad(x,y,amp=amp_short,scale=scale_short,symm=symm,diff_degree=diff_degree)
+    long_part = pm.gp.gaussian.aniso_geo_rad(x,y,amp=amp_long,scale=scale_long,symm=symm,inc=inc,ecc=ecc)
+    out += long_part
+    return out
     
 
 def ibd_covariance_submodel():

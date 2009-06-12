@@ -76,10 +76,15 @@ def ibd_covariance_submodel():
     return locals()
     
     
-def make_model(pos,neg,lon,lat,covariate_values,cpus=1):
+def make_model(lon,lat,pos,neg,covariate_values,cpus=1):
     """
     This function is required by the generic MBG code.
     """
+    
+    if np.any(pos+neg==0):
+        where_zero = np.where(pos+neg==0)[0]
+        raise ValueError, 'Pos+neg = 0 in the rows (starting from zero):\n %s'%where_zero
+    
     
     # How many nuggeted field points to handle with each step method
     grainsize = 10
@@ -164,19 +169,3 @@ def make_model(pos,neg,lon,lat,covariate_values,cpus=1):
     out.update(sp_sub)
 
     return out
-    
-# Stuff mandated by the new map_utils standard
-
-# f_name = 'f'
-# x_name = 'logp_mesh'
-# f_has_nugget = False
-# nugget_name = 'V'
-
-diag_safe = True
-f_name = 'eps_p_f'
-x_name = 'data_mesh'
-f_has_nugget = True
-nugget_name = 'V'
-metadata_keys = ['fi','ti','ui']
-postproc = invlogit
-step_method_orders = {'f':(FieldStepper, )}

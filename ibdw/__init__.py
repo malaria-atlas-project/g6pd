@@ -1,7 +1,9 @@
 # from mcmc import *
 from model import *
+from generic_mbg import invlogit, FieldStepper
 
 # Stuff mandated by the new map_utils standard
+
 
 diag_safe = True
 f_name = 'eps_p_f'

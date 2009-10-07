@@ -9,8 +9,9 @@ import pymc as pm
 import gc
 from map_utils import *
 from generic_mbg import *
+import generic_mbg
 
-__all__ = ['make_model','postproc','f_name','x_name','nugget_name','f_has_nugget','metadata_keys','step_method_orders','diag_safe']
+__all__ = ['make_model','nested_covariance_fn']
 
 def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, inc, ecc, diff_degree, symm=False):
     """
@@ -76,7 +77,7 @@ def ibd_covariance_submodel():
     return locals()
     
     
-def make_model(lon,lat,pos,neg,covariate_values,cpus=1):
+def make_model(lon,lat,covariate_values,pos,neg,cpus=1):
     """
     This function is required by the generic MBG code.
     """
@@ -129,9 +130,20 @@ def make_model(lon,lat,pos,neg,covariate_values,cpus=1):
             # Space-time component
             sp_sub = ibd_covariance_submodel()    
             covariate_dict, C_eval = cd_and_C_eval(covariate_values, sp_sub['C'], data_mesh, ui)
+            
+            @pm.deterministic
+            def S_eval(C_eval=C_eval):
+                try:
+                    return np.linalg.cholesky(C_eval)
+                except np.linalg.LinAlgError:
+                    return None
+                    
+            @pm.potential
+            def fr_check(S_eval=S_eval):
+                return -np.inf if S_eval is None else 0
 
             # The field evaluated at the uniquified data locations            
-            f = pm.MvNormalCov('f', M_eval, C_eval)
+            f = pm.MvNormalChol('f', M_eval, S_eval)
             # Make f start somewhere a bit sane
             f.value = f.value - np.mean(f.value)
         
@@ -146,7 +158,7 @@ def make_model(lon,lat,pos,neg,covariate_values,cpus=1):
                 eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, f[fi[sl]], 1./sp_sub['V'], value=pm.logit(s_hat[sl]),trace=False))
 
                 # The allele frequency
-                s_d.append(pm.InvLogit('s_%i'%i,eps_p_f_d[-1],trace=False))
+                s_d.append(pm.Lambda('s_%i'%i,lambda lt=eps_p_f_d[-1]: invlogit(lt),trace=False))
 
                 # The observed allele frequencies
                 data_d.append(pm.Binomial('data_%i'%i, pos[sl]+neg[sl], s_d[-1], value=pos[sl], observed=True))

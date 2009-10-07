@@ -24,7 +24,9 @@ def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, inc,
     long_part = pm.gp.gaussian.aniso_geo_rad(x,y,amp=amp_long,scale=scale_long,symm=symm,inc=inc,ecc=ecc)
     out += long_part
     return out
-    
+
+def mean_fn(x):
+    return np.zeros(x.shape[:-1])    
 
 def ibd_covariance_submodel():
     """
@@ -122,7 +124,13 @@ def make_model(lon,lat,covariate_values,pos,neg,cpus=1):
     logp_mesh = combine_spatial_inputs(lon,lat)
     
     # Create the mean & its evaluation at the data locations.
-    M, M_eval = trivial_means(logp_mesh)
+    @pm.deterministic
+    def M():
+        return pm.Mean(mean_fn)
+        
+    @pm.deterministic
+    def M_eval(M=M):
+        return M(logp_mesh)
 
     init_OK = False
     while not init_OK:

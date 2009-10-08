@@ -126,7 +126,7 @@ def make_model(lon,lat,covariate_values,pos,neg,cpus=1):
     # Create the mean & its evaluation at the data locations.
     @pm.deterministic
     def M():
-        return pm.Mean(mean_fn)
+        return pm.gp.Mean(mean_fn)
         
     @pm.deterministic
     def M_eval(M=M):

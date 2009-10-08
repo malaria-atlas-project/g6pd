@@ -18,15 +18,15 @@ def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, inc,
     A nested covariance funcion with a smooth, anisotropic long-scale part
     and a rough, isotropic short-scale part.
     """
-    amp_short = amp*amp_short_frac
-    amp_long = amp*(1-amp_short_frac)
+    amp_short = amp*np.sqrt(amp_short_frac)
+    amp_long = amp*np.sqrt(1-amp_short_frac)
     out = pm.gp.matern.geo_rad(x,y,amp=amp_short,scale=scale_short,symm=symm,diff_degree=diff_degree)
     long_part = pm.gp.gaussian.aniso_geo_rad(x,y,amp=amp_long,scale=scale_long,symm=symm,inc=inc,ecc=ecc)
     out += long_part
     return out
 
-def mean_fn(x):
-    return np.zeros(x.shape[:-1])    
+def mean_fn(x,m):
+    return np.zeros(x.shape[:-1])+m
 
 def ibd_covariance_submodel():
     """
@@ -88,7 +88,6 @@ def make_model(lon,lat,covariate_values,pos,neg,cpus=1):
         where_zero = np.where(pos+neg==0)[0]
         raise ValueError, 'Pos+neg = 0 in the rows (starting from zero):\n %s'%where_zero
     
-    
     # How many nuggeted field points to handle with each step method
     grainsize = 10
         
@@ -123,21 +122,38 @@ def make_model(lon,lat,covariate_values,pos,neg,cpus=1):
     # Unique data locations
     logp_mesh = combine_spatial_inputs(lon,lat)
     
+    # m = pm.Uniform('m',-10,-5)
+    m = pm.Uninformative('m',value=-7)
+        
+    normrands = np.random.normal(size=1000)
+        
     # Create the mean & its evaluation at the data locations.
     @pm.deterministic
-    def M():
-        return pm.gp.Mean(mean_fn)
-        
+    def M(m=m):
+        return pm.gp.Mean(mean_fn, m=m)
+
     @pm.deterministic
     def M_eval(M=M):
         return M(logp_mesh)
+
+
 
     init_OK = False
     while not init_OK:
         try:        
             # Space-time component
             sp_sub = ibd_covariance_submodel()    
-            covariate_dict, C_eval = cd_and_C_eval(covariate_values, sp_sub['C'], data_mesh, ui)
+            
+            @pm.potential
+            def pripred_check(m=m,amp=sp_sub['amp'],V=sp_sub['V'],normrands=normrands):
+                sum_above = np.sum(pm.flib.invlogit(normrands*np.sqrt(amp+V)+m)>.017)
+                if float(sum_above) / len(normrands) <= 1.-.79:
+                    return 0.
+                else:
+                    return -np.inf
+            
+            
+            covariate_dict, C_eval = cd_and_C_eval(covariate_values, sp_sub['C'], data_mesh, ui, fac=0)
             
             @pm.deterministic
             def S_eval(C_eval=C_eval):

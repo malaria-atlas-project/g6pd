@@ -11,7 +11,7 @@ from map_utils import *
 from generic_mbg import *
 import generic_mbg
 
-__all__ = ['make_model','nested_covariance_fn']
+__all__ = ['make_model']
 
 def ibd_covariance_submodel():
     """

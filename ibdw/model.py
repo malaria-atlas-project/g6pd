@@ -9,8 +9,9 @@ import pymc as pm
 import gc
 from map_utils import *
 from generic_mbg import *
+import generic_mbg
 
-__all__ = ['make_model','postproc','f_name','x_name','nugget_name','f_has_nugget','metadata_keys','step_method_orders','diag_safe']
+__all__ = ['make_model','nested_covariance_fn']
 
 def ibd_covariance_submodel():
     """
@@ -137,19 +138,3 @@ def make_model(pos,neg,lon,lat,covariate_values,cpus=1):
     out.update(sp_sub)
 
     return out
-    
-# Stuff mandated by the new map_utils standard
-
-# f_name = 'f'
-# x_name = 'logp_mesh'
-# f_has_nugget = False
-# nugget_name = 'V'
-
-diag_safe = True
-f_name = 'eps_p_f'
-x_name = 'data_mesh'
-f_has_nugget = True
-nugget_name = 'V'
-metadata_keys = ['fi','ti','ui']
-postproc = invlogit
-step_method_orders = {'f':(FieldStepper, )}

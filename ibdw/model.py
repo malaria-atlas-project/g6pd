@@ -50,7 +50,7 @@ def ibd_covariance_submodel():
     return locals()
     
     
-def make_model(pos,neg,lon,lat,covariate_values,cpus=1):
+def make_model(lon,lat,covariate_values,pos,neg,cpus=1):
     """
     This function is required by the generic MBG code.
     """

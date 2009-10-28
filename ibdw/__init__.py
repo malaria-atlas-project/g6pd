@@ -5,7 +5,7 @@ from generic_mbg import invlogit, FieldStepper
 # Stuff mandated by the new map_utils standard
 
 
-diag_safe = True
+diag_safe = False
 f_name = 'eps_p_f'
 x_name = 'data_mesh'
 f_has_nugget = True

@@ -1,6 +1,7 @@
 # from mcmc import *
 from model import *
 from generic_mbg import invlogit, FieldStepper
+from cut_geographic import hemisphere, cut_geographic
 
 # Stuff mandated by the new map_utils standard
 

@@ -10,6 +10,7 @@ import gc
 from map_utils import *
 from generic_mbg import *
 import generic_mbg
+from cut_geographic import cut_geographic
 
 __all__ = ['make_model','nested_covariance_fn']
 
@@ -34,15 +35,18 @@ __all__ = ['make_model','nested_covariance_fn']
 # lat = np.array([latfun(tau)*180./np.pi for tau in t])    
 # lon = np.array([lonfun(tau)*180./np.pi for tau in t])
 
-def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, inc, ecc, diff_degree, symm=False):
+pm.gp.matern.add_distance_metric(cut_geographic)
+pm.gp.gaussian.add_distance_metric(cut_geographic)
+
+def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, diff_degree, symm=False):
     """
     A nested covariance funcion with a smooth, anisotropic long-scale part
     and a rough, isotropic short-scale part.
     """
     amp_short = amp*np.sqrt(amp_short_frac)
     amp_long = amp*np.sqrt(1-amp_short_frac)
-    out = pm.gp.matern.geo_rad(x,y,amp=amp_short,scale=scale_short,symm=symm,diff_degree=diff_degree)
-    long_part = pm.gp.gaussian.aniso_geo_rad(x,y,amp=amp_long,scale=scale_long,symm=symm,inc=inc,ecc=ecc)
+    out = pm.gp.matern.cut_geographic(x,y,amp=amp_short,scale=scale_short,symm=symm,diff_degree=diff_degree)
+    long_part = pm.gp.gaussian.cut_geographic(x,y,amp=amp_long,scale=scale_long,symm=symm,inc=inc,ecc=ecc)
     out += long_part
     return out
 
@@ -54,11 +58,6 @@ def ibd_covariance_submodel():
     A small function that creates the mean and covariance object
     of the random field.
     """
-
-    # Anisotropy parameters.
-    inc = pm.CircVonMises('inc', 0, 0)
-    sqrt_ecc = pm.Uniform('sqrt_ecc', 0, .95)
-    ecc = sqrt_ecc**2
     
     # The fraction of the partial sill going to 'short' variation.
     amp_short_frac = pm.Uniform('amp_short_frac',0,1)
@@ -92,10 +91,10 @@ def ibd_covariance_submodel():
     
     # Create the covariance & its evaluation at the data locations.
     @pm.deterministic(trace=True)
-    def C(amp=amp, amp_short_frac=amp_short_frac, scale_short=scale_short, scale_long=scale_long, inc=inc, ecc=ecc, diff_degree=diff_degree):
+    def C(amp=amp, amp_short_frac=amp_short_frac, scale_short=scale_short, scale_long=scale_long, diff_degree=diff_degree):
         """A covariance function created from the current parameter values."""
         return pm.gp.FullRankCovariance(nested_covariance_fn, amp=amp, amp_short_frac=amp_short_frac, scale_short=scale_short, 
-                    scale_long=scale_long, inc=inc, ecc=ecc, diff_degree=diff_degree)
+                    scale_long=scale_long, diff_degree=diff_degree)
     
     return locals()
     

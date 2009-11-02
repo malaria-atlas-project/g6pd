@@ -13,6 +13,27 @@ import generic_mbg
 
 __all__ = ['make_model','nested_covariance_fn']
 
+# The parameterization of the cut between western and eastern hemispheres.
+#
+# t = np.linspace(0,1,501)
+# 
+# def latfun(t):
+#     if t<.5:
+#         return (t*4-1)*np.pi
+#     else:
+#         return ((1-t)*4-1)*np.pi
+#         
+# def lonfun(t):
+#     if t<.25:
+#         return -28*np.pi/180.
+#     elif t < .5:
+#         return -28*np.pi/180. + (t-.25)*3.5
+#     else:
+#         return -169*np.pi/180.
+#     
+# lat = np.array([latfun(tau)*180./np.pi for tau in t])    
+# lon = np.array([lonfun(tau)*180./np.pi for tau in t])
+
 def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, inc, ecc, diff_degree, symm=False):
     """
     A nested covariance funcion with a smooth, anisotropic long-scale part

@@ -43,7 +43,7 @@ def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, diff
     amp_short = amp*np.sqrt(amp_short_frac)
     amp_long = amp*np.sqrt(1-amp_short_frac)
     out = cut_matern(x,y,amp=amp_short,scale=scale_short,symm=symm,diff_degree=diff_degree)
-    long_part = cut_gaussian(x,y,amp=amp_long,scale=scale_long,symm=symm,inc=inc,ecc=ecc)
+    long_part = cut_gaussian(x,y,amp=amp_long,scale=scale_long,symm=symm)
     out += long_part
     return out
 

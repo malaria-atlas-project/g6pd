@@ -10,7 +10,7 @@ import gc
 from map_utils import *
 from generic_mbg import *
 import generic_mbg
-from cut_geographic import cut_geographic
+
 
 __all__ = ['make_model','nested_covariance_fn']
 
@@ -34,9 +34,6 @@ __all__ = ['make_model','nested_covariance_fn']
 #     
 # lat = np.array([latfun(tau)*180./np.pi for tau in t])    
 # lon = np.array([lonfun(tau)*180./np.pi for tau in t])
-
-pm.gp.matern.add_distance_metric(cut_geographic)
-pm.gp.gaussian.add_distance_metric(cut_geographic)
 
 def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, diff_degree, symm=False):
     """

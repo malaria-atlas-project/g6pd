@@ -1,7 +1,12 @@
 # from mcmc import *
-from model import *
 from generic_mbg import invlogit, FieldStepper
-from cut_geographic import hemisphere, cut_geographic
+import pymc as pm
+from cut_geographic import cut_geographic, hemisphere
+
+pm.gp.matern.add_distance_metric('cut_geographic','ibdw')
+pm.gp.gaussian.add_distance_metric('cut_geographic','ibdw')
+
+from model import *
 
 # Stuff mandated by the new map_utils standard
 

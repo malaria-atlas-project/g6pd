@@ -10,7 +10,7 @@ import gc
 from map_utils import *
 from generic_mbg import *
 import generic_mbg
-
+from ibdw import cut_matern, cut_gaussian
 
 __all__ = ['make_model','nested_covariance_fn']
 
@@ -42,8 +42,8 @@ def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, diff
     """
     amp_short = amp*np.sqrt(amp_short_frac)
     amp_long = amp*np.sqrt(1-amp_short_frac)
-    out = pm.gp.matern.cut_geographic(x,y,amp=amp_short,scale=scale_short,symm=symm,diff_degree=diff_degree)
-    long_part = pm.gp.gaussian.cut_geographic(x,y,amp=amp_long,scale=scale_long,symm=symm,inc=inc,ecc=ecc)
+    out = cut_matern(x,y,amp=amp_short,scale=scale_short,symm=symm,diff_degree=diff_degree)
+    long_part = cut_gaussian(x,y,amp=amp_long,scale=scale_long,symm=symm,inc=inc,ecc=ecc)
     out += long_part
     return out
 

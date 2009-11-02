@@ -2,15 +2,21 @@
 from generic_mbg import invlogit, FieldStepper
 import pymc as pm
 from cut_geographic import cut_geographic, hemisphere
+import ibdw
+import os
+root = os.path.split(ibdw.__file__)[0]
+pm.gp.cov_funs.cov_utils.mod_search_path.append(root)
 
-pm.gp.matern.add_distance_metric('cut_geographic','ibdw')
-pm.gp.gaussian.add_distance_metric('cut_geographic','ibdw')
+import cg
+from cg import *
+
+cut_matern = pm.gp.cov_utils.covariance_wrapper('matern', 'pymc.gp.cov_funs.isotropic_cov_funs', {'diff_degree': 'The degree of differentiability of realizations.'}, 'cut_geographic', 'cg')
+cut_gaussian = pm.gp.cov_utils.covariance_wrapper('gaussian', 'pymc.gp.cov_funs.isotropic_cov_funs', {}, 'cut_geographic', 'cg')
+
 
 from model import *
 
 # Stuff mandated by the new map_utils standard
-
-
 diag_safe = False
 f_name = 'eps_p_f'
 x_name = 'data_mesh'

@@ -155,67 +155,59 @@ def make_model(lon,lat,covariate_values,pos,neg,cpus=1):
 
 
 
-    init_OK = False
-    while not init_OK:
-        try:        
-            # Space-time component
-            sp_sub = ibd_covariance_submodel()    
+    # Space-time component
+    sp_sub = ibd_covariance_submodel()    
+    
+    @pm.potential
+    def pripred_check(m=m,amp=sp_sub['amp'],V=sp_sub['V'],normrands=normrands):
+        sum_above = np.sum(pm.flib.invlogit(normrands*np.sqrt(amp+V)+m)>.017)
+        if float(sum_above) / len(normrands) <= 1.-.79:
+            return 0.
+        else:
+            return -np.inf
+    
+    
+    covariate_dict, C_eval = cd_and_C_eval(covariate_values, sp_sub['C'], data_mesh, ui, fac=0)
+    
+    @pm.deterministic
+    def S_eval(C_eval=C_eval):
+        try:
+            return np.linalg.cholesky(C_eval)
+        except np.linalg.LinAlgError:
+            return None
             
-            @pm.potential
-            def pripred_check(m=m,amp=sp_sub['amp'],V=sp_sub['V'],normrands=normrands):
-                sum_above = np.sum(pm.flib.invlogit(normrands*np.sqrt(amp+V)+m)>.017)
-                if float(sum_above) / len(normrands) <= 1.-.79:
-                    return 0.
-                else:
-                    return -np.inf
-            
-            
-            covariate_dict, C_eval = cd_and_C_eval(covariate_values, sp_sub['C'], data_mesh, ui, fac=0)
-            
-            @pm.deterministic
-            def S_eval(C_eval=C_eval):
-                try:
-                    return np.linalg.cholesky(C_eval)
-                except np.linalg.LinAlgError:
-                    return None
-                    
-            @pm.potential
-            def fr_check(S_eval=S_eval):
-                return -np.inf if S_eval is None else 0
+    @pm.potential
+    def fr_check(S_eval=S_eval):
+        return -np.inf if S_eval is None else 0
 
-            # The field evaluated at the uniquified data locations            
-            f = pm.MvNormalChol('f', M_eval, S_eval)
-            # Make f start somewhere a bit sane
-            f.value = f.value - np.mean(f.value)
-        
-            # Loop over data clusters
-            eps_p_f_d = []
-            s_d = []
-            data_d = []
+    # The field evaluated at the uniquified data locations            
+    f = pm.MvNormalChol('f', M_eval, S_eval)
+    # Make f start somewhere a bit sane
+    f.value = f.value - np.mean(f.value)
 
-            for i in xrange(len(pos)/grainsize+1):
-                sl = slice(i*grainsize,(i+1)*grainsize,None)
-                # Nuggeted field in this cluster
-                eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, f[fi[sl]], 1./sp_sub['V'], value=pm.logit(s_hat[sl]),trace=False))
+    # Loop over data clusters
+    eps_p_f_d = []
+    s_d = []
+    data_d = []
 
-                # The allele frequency
-                s_d.append(pm.Lambda('s_%i'%i,lambda lt=eps_p_f_d[-1]: invlogit(lt),trace=False))
+    for i in xrange(len(pos)/grainsize+1):
+        sl = slice(i*grainsize,(i+1)*grainsize,None)
+        # Nuggeted field in this cluster
+        eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, f[fi[sl]], 1./sp_sub['V'], value=pm.logit(s_hat[sl]),trace=False))
 
-                # The observed allele frequencies
-                data_d.append(pm.Binomial('data_%i'%i, pos[sl]+neg[sl], s_d[-1], value=pos[sl], observed=True))
-            
-            # The field plus the nugget
-            @pm.deterministic
-            def eps_p_f(eps_p_fd = eps_p_f_d):
-                """Concatenated version of eps_p_f, for postprocessing & Gibbs sampling purposes"""
-                return np.concatenate(eps_p_fd)
-            
-            init_OK = True
-        except pm.ZeroProbability, msg:
-            print 'Trying again: %s'%msg
-            init_OK = False
-            gc.collect()
-        
+        # The allele frequency
+        s_d.append(pm.Lambda('s_%i'%i,lambda lt=eps_p_f_d[-1]: invlogit(lt),trace=False))
+
+        # The observed allele frequencies
+        data_d.append(pm.Binomial('data_%i'%i, pos[sl]+neg[sl], s_d[-1], value=pos[sl], observed=True))
+    
+    # The field plus the nugget
+    @pm.deterministic
+    def eps_p_f(eps_p_fd = eps_p_f_d):
+        """Concatenated version of eps_p_f, for postprocessing & Gibbs sampling purposes"""
+        return np.concatenate(eps_p_fd)
+    
+    init_OK = True        
 
     out = locals()
     out.pop('sp_sub')

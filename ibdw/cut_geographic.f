@@ -52,7 +52,8 @@ cf2py threadsafe
       LOGICAL symm
       DOUBLE PRECISION clat1, clat2, dlat, dlon, a, sterm, cterm
       DOUBLE PRECISION infinity
-      PARAMETER (infinity = 1.7976931348623157d308)
+!       PARAMETER (infinity = 1.0d300)
+      PARAMETER (infinity = 10000000D0)
       
       if (cmax.EQ.-1) then
           cmax = ny

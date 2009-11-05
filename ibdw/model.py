@@ -191,8 +191,8 @@ def make_model(lon,lat,covariate_values,pos,neg,cpus=1):
     data_d = []
 
     for i in xrange(len(pos)/grainsize+1):
+        sl = slice(i*grainsize,(i+1)*grainsize,None)        
         if len(s_hat[sl])>0:
-            sl = slice(i*grainsize,(i+1)*grainsize,None)
             # Nuggeted field in this cluster
             eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, f[fi[sl]], 1./sp_sub['V'], value=pm.logit(s_hat[sl]),trace=False))
 

@@ -66,7 +66,7 @@ def ibd_covariance_submodel():
     
     # Create the covariance & its evaluation at the data locations.
     @pm.deterministic(trace=True)
-    def C(amp=amp, amp=amp, scale=scale, diff_degree=diff_degree):
+    def C(amp=amp, scale=scale, diff_degree=diff_degree):
         """A covariance function created from the current parameter values."""
         return pm.gp.FullRankCovariance(cut_matern, amp=amp, scale=scale, diff_degree=diff_degree)
     

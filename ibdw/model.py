@@ -10,24 +10,47 @@ import gc
 from map_utils import *
 from generic_mbg import *
 import generic_mbg
-
 __all__ = ['make_model']
+from ibdw import cut_matern
+
+# The parameterization of the cut between western and eastern hemispheres.
+#
+# t = np.linspace(0,1,501)
+# 
+# def latfun(t):
+#     if t<.5:
+#         return (t*4-1)*np.pi
+#     else:
+#         return ((1-t)*4-1)*np.pi
+#         
+# def lonfun(t):
+#     if t<.25:
+#         return -28*np.pi/180.
+#     elif t < .5:
+#         return -28*np.pi/180. + (t-.25)*3.5
+#     else:
+#         return -169*np.pi/180.
+#     
+# lat = np.array([latfun(tau)*180./np.pi for tau in t])    
+# lon = np.array([lonfun(tau)*180./np.pi for tau in t])
+
+
+def mean_fn(x,m):
+    return np.zeros(x.shape[:-1])+m
 
 def ibd_covariance_submodel():
     """
     A small function that creates the mean and covariance object
     of the random field.
     """
-
-    # Anisotropy parameters.
-    inc = pm.CircVonMises('inc', 0, 0)
-    sqrt_ecc = pm.Uniform('sqrt_ecc', 0, .95)
-    ecc = sqrt_ecc**2
+    
+    # The fraction of the partial sill going to 'short' variation.
+    amp_short_frac = pm.Uniform('amp_short_frac',0,1)
     
     # The partial sill.
     amp = pm.Exponential('amp', .1, value=1.)
     
-    # The range parameter. Units are RADIANS. 
+    # The range parameters. Units are RADIANS. 
     # 1 radian = the radius of the earth, about 6378.1 km
     # scale = pm.Exponential('scale', 1./.08, value=.08)
     
@@ -43,9 +66,9 @@ def ibd_covariance_submodel():
     
     # Create the covariance & its evaluation at the data locations.
     @pm.deterministic(trace=True)
-    def C(amp=amp, scale=scale, inc=inc, ecc=ecc, diff_degree=diff_degree):
+    def C(amp=amp, amp=amp, scale=scale, diff_degree=diff_degree):
         """A covariance function created from the current parameter values."""
-        return pm.gp.FullRankCovariance(pm.gp.cov_funs.matern.aniso_geo_rad, amp=amp, scale=scale, inc=inc, ecc=ecc, diff_degree=diff_degree)
+        return pm.gp.FullRankCovariance(cut_matern, amp=amp, scale=scale, diff_degree=diff_degree)
     
     return locals()
     
@@ -54,6 +77,10 @@ def make_model(lon,lat,covariate_values,pos,neg,cpus=1):
     """
     This function is required by the generic MBG code.
     """
+    
+    if np.any(pos+neg==0):
+        where_zero = np.where(pos+neg==0)[0]
+        raise ValueError, 'Pos+neg = 0 in the rows (starting from zero):\n %s'%where_zero
     
     # How many nuggeted field points to handle with each step method
     grainsize = 10
@@ -89,49 +116,74 @@ def make_model(lon,lat,covariate_values,pos,neg,cpus=1):
     # Unique data locations
     logp_mesh = combine_spatial_inputs(lon,lat)
     
+    # m = pm.Uniform('m',-10,-5)
+    m = pm.Uninformative('m',value=-7)
+        
+    normrands = np.random.normal(size=1000)
+        
     # Create the mean & its evaluation at the data locations.
-    M, M_eval = trivial_means(logp_mesh)
+    @pm.deterministic
+    def M(m=m):
+        return pm.gp.Mean(mean_fn, m=m)
 
-    init_OK = False
-    while not init_OK:
-        try:        
-            # Space-time component
-            sp_sub = ibd_covariance_submodel()    
-            covariate_dict, C_eval = cd_and_C_eval(covariate_values, sp_sub['C'], data_mesh, ui)
+    @pm.deterministic
+    def M_eval(M=M):
+        return M(logp_mesh)
 
-            # The field evaluated at the uniquified data locations            
-            f = pm.MvNormalCov('f', M_eval, C_eval)
-            # Make f start somewhere a bit sane
-            f.value = f.value - np.mean(f.value)
-        
-            # Loop over data clusters
-            eps_p_f_d = []
-            s_d = []
-            data_d = []
 
-            for i in xrange(len(pos)/grainsize+1):
-                sl = slice(i*grainsize,(i+1)*grainsize,None)
-                # Nuggeted field in this cluster
-                eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, f[fi[sl]], 1./sp_sub['V'], value=pm.logit(s_hat[sl]),trace=False))
-
-                # The allele frequency
-                s_d.append(pm.Lambda('s_%i'%i,lambda lt=eps_p_f_d[-1]: invlogit(lt),trace=False))
-
-                # The observed allele frequencies
-                data_d.append(pm.Binomial('data_%i'%i, pos[sl]+neg[sl], s_d[-1], value=pos[sl], observed=True))
+    # Space-time component
+    sp_sub = ibd_covariance_submodel()    
+    
+    @pm.potential
+    def pripred_check(m=m,amp=sp_sub['amp'],V=sp_sub['V'],normrands=normrands):
+        sum_above = np.sum(pm.flib.invlogit(normrands*np.sqrt(amp+V)+m)>.017)
+        if float(sum_above) / len(normrands) <= 1.-.79:
+            return 0.
+        else:
+            return -np.inf
+    
+    
+    covariate_dict, C_eval = cd_and_C_eval(covariate_values, sp_sub['C'], data_mesh, ui, fac=0)
+    
+    @pm.deterministic
+    def S_eval(C_eval=C_eval):
+        try:
+            return np.linalg.cholesky(C_eval)
+        except np.linalg.LinAlgError:
+            return None
             
-            # The field plus the nugget
-            @pm.deterministic
-            def eps_p_f(eps_p_fd = eps_p_f_d):
-                """Concatenated version of eps_p_f, for postprocessing & Gibbs sampling purposes"""
-                return np.concatenate(eps_p_fd)
-            
-            init_OK = True
-        except pm.ZeroProbability, msg:
-            print 'Trying again: %s'%msg
-            init_OK = False
-            gc.collect()
-        
+    @pm.potential
+    def fr_check(S_eval=S_eval):
+        return -np.inf if S_eval is None else 0
+
+    # The field evaluated at the uniquified data locations            
+    f = pm.MvNormalChol('f', M_eval, S_eval)
+    # Make f start somewhere a bit sane
+    f.value = f.value - np.mean(f.value)
+
+    # Loop over data clusters
+    eps_p_f_d = []
+    s_d = []
+    data_d = []
+
+    for i in xrange(len(pos)/grainsize+1):
+        sl = slice(i*grainsize,(i+1)*grainsize,None)
+        # Nuggeted field in this cluster
+        eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, f[fi[sl]], 1./sp_sub['V'], value=pm.logit(s_hat[sl]),trace=False))
+
+        # The allele frequency
+        s_d.append(pm.Lambda('s_%i'%i,lambda lt=eps_p_f_d[-1]: invlogit(lt),trace=False))
+
+        # The observed allele frequencies
+        data_d.append(pm.Binomial('data_%i'%i, pos[sl]+neg[sl], s_d[-1], value=pos[sl], observed=True))
+    
+    # The field plus the nugget
+    @pm.deterministic
+    def eps_p_f(eps_p_fd = eps_p_f_d):
+        """Concatenated version of eps_p_f, for postprocessing & Gibbs sampling purposes"""
+        return np.concatenate(eps_p_fd)
+    
+    init_OK = True        
 
     out = locals()
     out.pop('sp_sub')

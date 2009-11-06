@@ -141,21 +141,30 @@ def make_model(lon,lat,covariate_values,pos,neg,cpus=1):
     # Create the mean & its evaluation at the data locations.
     M, M_eval = trivial_means(logp_mesh)
     
-    # Space-time component
-    sp_sub = ibd_covariance_submodel()    
-    
-    covariate_dict, C_eval = cd_and_C_eval(covariate_values, sp_sub['C'], data_mesh, ui)
-    
-    @pm.deterministic
-    def S_eval(C_eval=C_eval):
+    init_OK = False
+    while not init_OK:
         try:
-            return np.linalg.cholesky(C_eval)
-        except np.linalg.LinAlgError:
-            return None
+            # Space-time component
+            sp_sub = ibd_covariance_submodel()    
+    
+            covariate_dict, C_eval = cd_and_C_eval(covariate_values, sp_sub['C'], data_mesh, ui)
+    
+            @pm.deterministic
+            def S_eval(C_eval=C_eval):
+                try:
+                    return np.linalg.cholesky(C_eval)
+                except np.linalg.LinAlgError:
+                    return None
             
-    @pm.potential
-    def fr_check(S_eval=S_eval):
-        return -np.inf if S_eval is None else 0
+            @pm.potential
+            def fr_check(S_eval=S_eval):
+                return -np.inf if S_eval is None else 0
+            
+            init_OK = True
+        except pm.ZeroProbability:
+            init_OK = False
+            import gc
+            gc.collect()
 
     # The field evaluated at the uniquified data locations            
     f = pm.MvNormalChol('f', M_eval, S_eval)

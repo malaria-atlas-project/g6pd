@@ -35,9 +35,6 @@ from ibdw import cut_matern
 # lon = np.array([lonfun(tau)*180./np.pi for tau in t])
 
 
-def mean_fn(x,m):
-    return np.zeros(x.shape[:-1])+m
-
 def ibd_covariance_submodel():
     """
     A small function that creates the mean and covariance object
@@ -115,35 +112,16 @@ def make_model(lon,lat,covariate_values,pos,neg,cpus=1):
 
     # Unique data locations
     logp_mesh = combine_spatial_inputs(lon,lat)
-    
-    # m = pm.Uniform('m',-10,-5)
-    m = pm.Uninformative('m',value=-7)
         
     normrands = np.random.normal(size=1000)
         
     # Create the mean & its evaluation at the data locations.
-    @pm.deterministic
-    def M(m=m):
-        return pm.gp.Mean(mean_fn, m=m)
-
-    @pm.deterministic
-    def M_eval(M=M):
-        return M(logp_mesh)
-
+    M, M_eval = trivial_means(logp_mesh)
 
     # Space-time component
     sp_sub = ibd_covariance_submodel()    
     
-    @pm.potential
-    def pripred_check(m=m,amp=sp_sub['amp'],V=sp_sub['V'],normrands=normrands):
-        sum_above = np.sum(pm.flib.invlogit(normrands*np.sqrt(amp+V)+m)>.017)
-        if float(sum_above) / len(normrands) <= 1.-.79:
-            return 0.
-        else:
-            return -np.inf
-    
-    
-    covariate_dict, C_eval = cd_and_C_eval(covariate_values, sp_sub['C'], data_mesh, ui, fac=0)
+    covariate_dict, C_eval = cd_and_C_eval(covariate_values, sp_sub['C'], data_mesh, ui)
     
     @pm.deterministic
     def S_eval(C_eval=C_eval):

@@ -7,4 +7,4 @@ def cut_geographic(D,x,y,cmin=0,cmax=-1,symm=0):
     """
     A distance function that separates the Americas from the rest of the world.
     """
-    return cg(D,x,y,cmin,cmax,symm)
+    return  cg(D,x,y,cmin,cmax,symm)

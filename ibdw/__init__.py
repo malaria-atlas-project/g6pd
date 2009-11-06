@@ -11,11 +11,13 @@ import cg
 from cg import *
 
 cut_matern = pm.gp.cov_utils.covariance_wrapper('matern', 'pymc.gp.cov_funs.isotropic_cov_funs', {'diff_degree': 'The degree of differentiability of realizations.'}, 'cut_geographic', 'cg')
+cut_gaussian = pm.gp.cov_utils.covariance_wrapper('gaussian', 'pymc.gp.cov_funs.isotropic_cov_funs', {}, 'cut_geographic', 'cg')
 
 
 from model import *
 
-diag_safe = True
+# Stuff mandated by the new map_utils standard
+diag_safe = False
 f_name = 'eps_p_f'
 x_name = 'data_mesh'
 f_has_nugget = True

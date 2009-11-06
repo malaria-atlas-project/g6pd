@@ -136,9 +136,6 @@ def make_model(lon,lat,covariate_values,pos,neg,cpus=1):
     # Unique data locations
     logp_mesh = combine_spatial_inputs(lon,lat)
     
-    # m = pm.Uniform('m',-10,-5)
-    m = pm.Uninformative('m',value=-7)
-        
     normrands = np.random.normal(size=1000)
         
     # Create the mean & its evaluation at the data locations.

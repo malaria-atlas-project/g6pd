@@ -113,6 +113,8 @@ mean_diffprobs = mean(diffprobs, axis=0)
 se_diffprobs = std(diffprobs, axis=0)/sqrt(n_trials)
 
 meanprevs = array([mean(mm,axis=0) for mm in means])
+min_len = min([len(ps) for ps in pixsamps])
+pixsamps = [ps[:min_len] for ps in pixsamps]
 pixsamps = array(pixsamps).T
 
 savetxt('meanprevs.csv',meanprevs,delimiter=',')

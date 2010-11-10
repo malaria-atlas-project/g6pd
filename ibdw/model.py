@@ -97,7 +97,7 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
             # The nugget variance.
             V = pm.Exponential('V', .1, value=1.)
 
-            M = pm.Lambda('M', lambda :pm.gp.Mean(mean_fn))
+            M = pm.Lambda('M', lambda j=1 : pm.gp.Mean(mean_fn))
 
             # Create the covariance & its evaluation at the data locations.
             @pm.deterministic(trace=True)
@@ -107,7 +107,7 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
                 return pm.gp.FullRankCovariance(eval_fn, amp=amp, amp_short_frac=amp_short_frac, scale_short=scale_short, 
                             scale_long=scale_long, diff_degree=diff_degree)
 
-            sp_sub = pm.gp.GPSubModel('sp_sub', M, C, logp_mesh)
+            sp_sub = pm.gp.GPSubmodel('sp_sub', M, C, logp_mesh)
                 
             init_OK = True
         except pm.ZeroProbability:
@@ -116,7 +116,7 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
             gc.collect()
 
     # Make f start somewhere a bit sane
-    sp_sub.f.value = sp_sub.f.value - np.mean(sp_sub.f.value)
+    sp_sub.f_eval.value = sp_sub.f_eval.value - np.mean(sp_sub.f_eval.value)
 
     # Loop over data clusters
     eps_p_f_d = []
@@ -125,9 +125,9 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
 
     for i in xrange(len(pos)/grainsize+1):
         sl = slice(i*grainsize,(i+1)*grainsize,None)        
-        if len(s_hat[sl])>0:
+        if len(pos[sl])>0:
             # Nuggeted field in this cluster
-            eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, sp_sub.f_eval[fi[sl]], 1./V, value=pm.logit(s_hat[sl]),trace=False))
+            eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, sp_sub.f_eval[fi[sl]], 1./V,trace=False))
 
             # The allele frequency
             s_d.append(pm.Lambda('s_%i'%i,lambda lt=eps_p_f_d[-1]: invlogit(lt),trace=False))

@@ -3,6 +3,10 @@ from generic_mbg import invlogit
 import pymc as pm
 from cut_geographic import cut_geographic, hemisphere
 import ibdw
+import numpy as np
+import os
+root = os.path.split(ibdw.__file__)[0]
+pm.gp.cov_funs.cov_utils.mod_search_path.append(root)
 
 import cg
 from cg import *
@@ -33,3 +37,5 @@ def mcmc_init(M):
     M.use_step_method(pm.gp.GPParentAdaptiveMetropolis, [M.amp, M.amp_short_frac, M.scale_short, M.scale_long, M.diff_degree])
                     
 metadata_keys = ['fi','ti','ui']
+
+from model import *

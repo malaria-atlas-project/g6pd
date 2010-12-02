@@ -50,6 +50,10 @@ def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, diff
 def mean_fn(x):
     return np.zeros(x.shape[:-1])
 
+def dc(x,amp,*args,**kwds):
+    return np.ones(x.shape[:-1])*amp**2
+
+nested_covariance_fn.diag_call = dc
 
 def make_model(lon,lat,input_data,covariate_keys,pos,neg):
     """

@@ -35,6 +35,7 @@ map_postproc = [hbs]
 
 def mcmc_init(M):
     M.use_step_method(pm.gp.GPParentAdaptiveMetropolis, [M.amp, M.amp_short_frac, M.scale_short, M.scale_long, M.diff_degree])
+    M.use_step_method(pm.gp.GPEvaluationGibbs, M.sp_sub, M.V, M.eps_p_f)
                     
 metadata_keys = ['fi','ti','ui']
 

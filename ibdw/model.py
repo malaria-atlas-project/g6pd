@@ -47,9 +47,10 @@ def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, diff
     out += long_part
     return out
 
-def mean_fn(x):
-    return np.zeros(x.shape[:-1])
-
+def ncf_diag(x, amp, *args, **kwds):
+    return amp**2*np.ones(x.shape[:-1])
+    
+nested_covariance_fn.diag_call = ncf_diag
 
 def make_model(lon,lat,input_data,covariate_keys,pos,neg):
     """
@@ -97,7 +98,7 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
             # The nugget variance.
             V = pm.Exponential('V', .1, value=1.)
 
-            M = pm.Lambda('M', lambda j=1 : pm.gp.Mean(mean_fn))
+            M = pm.Lambda('M', lambda j=1 : pm.gp.Mean(pm.gp.zero_fn))
 
             # Create the covariance & its evaluation at the data locations.
             @pm.deterministic(trace=True)

@@ -98,17 +98,17 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
             # The nugget variance.
             V = pm.Exponential('V', .1, value=1.)
 
-            M = pm.Lambda('M', lambda j=1 : pm.gp.Mean(pm.gp.zero_fn))
+            M = pm.Lambda('M', lambda j=1 : pm.gp.Mean(pm.gp.zero_fn), trace=False)
 
             # Create the covariance & its evaluation at the data locations.
-            @pm.deterministic(trace=True)
+            @pm.deterministic(trace=False)
             def C(amp=amp, amp_short_frac=amp_short_frac, scale_short=scale_short, scale_long=scale_long, diff_degree=diff_degree, ck=covariate_keys, id=input_data, ui=ui):
                 """A covariance function created from the current parameter values."""
                 eval_fn = CovarianceWithCovariates(nested_covariance_fn, id, ck, ui)
                 return pm.gp.FullRankCovariance(eval_fn, amp=amp, amp_short_frac=amp_short_frac, scale_short=scale_short, 
                             scale_long=scale_long, diff_degree=diff_degree)
 
-            sp_sub = pm.gp.GPSubmodel('sp_sub', M, C, logp_mesh)
+            sp_sub = pm.gp.GPSubmodel('sp_sub', M, C, logp_mesh, tally_f=False)
                 
             init_OK = True
         except pm.ZeroProbability:

@@ -33,6 +33,18 @@ def hbs(sp_sub):
 
 map_postproc = [hbs]
 
+def areal_diff(gc): 
+    "Difference in areal mean between some areas" 
+
+    def h(Free, Epidemic, Hypoendemic, Mesoendemic, Hyperendemic, Holoendemic):
+        "The V is in there just to test"
+        return np.diff([Free, Epidemic, Hypoendemic, Mesoendemic, Hyperendemic, Holoendemic])
+
+    g = dict([(k, lambda sp_sub, x, a=v['geom'].area: invlogit(sp_sub(x))) for k,v in gc.iteritems()])
+    return h, g
+
+areal_postproc = [areal_diff]
+
 def mcmc_init(M):
     M.use_step_method(pm.gp.GPParentAdaptiveMetropolis, [M.amp, M.amp_short_frac, M.scale_short, M.scale_long, M.diff_degree])
     M.use_step_method(pm.gp.GPEvaluationGibbs, M.sp_sub, M.V, M.eps_p_f)

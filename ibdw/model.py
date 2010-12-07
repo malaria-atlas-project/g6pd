@@ -140,6 +140,5 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
     @pm.deterministic
     def eps_p_f(eps_p_fd = eps_p_f_d):
         """Concatenated version of eps_p_f, for postprocessing & Gibbs sampling purposes"""
-        return np.concatenate(eps_p_fd)
-    
+            
     return locals()

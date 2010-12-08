@@ -33,17 +33,28 @@ def hbs(sp_sub):
 
 map_postproc = [hbs]
 
-def areal_diff(gc): 
-    "Difference in areal mean between some areas" 
+regionlist=['Free','Epidemic','Hypoendemic','Mesoendemic','Hyperendemic','Holoendemic']
 
-    def h(Free, Epidemic, Hypoendemic, Mesoendemic, Hyperendemic, Holoendemic):
-        "The V is in there just to test"
-        return np.diff([Free, Epidemic, Hypoendemic, Mesoendemic, Hyperendemic, Holoendemic])
+def joint_areal_means(gc, regionlist=regionlist): 
+
+    def h(**kwds):
+        return np.array([kwds[r] for r in regionlist])
 
     g = dict([(k, lambda sp_sub, x, a=v['geom'].area: invlogit(sp_sub(x))) for k,v in gc.iteritems()])
     return h, g
+    
+def independent_areal_means(gc):
+    if len(gc)>1:
+        raise ValueError, "Got geometry collection containing more than one multipolygon: %s"%gc.keys()
+    
+    def h(**region):
+        return np.array(region.values()[0])
 
-areal_postproc = [areal_diff]
+    g = {gc.keys()[0]: lambda sp_sub, x: invlogit(sp_sub(x))}
+    
+    return h,g
+
+areal_postproc = [independent_areal_means]
 
 def mcmc_init(M):
     M.use_step_method(pm.gp.GPParentAdaptiveMetropolis, [M.amp, M.amp_short_frac, M.scale_short, M.scale_long, M.diff_degree])

@@ -96,7 +96,7 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
             diff_degree = pm.Uniform('diff_degree', .01, 3)
 
             # The nugget variance.
-            V = pm.Exponential('V', .1, value=1.)
+            V = pm.Exponential('V', .1, value=.2)
             @pm.potential
             def V_constraint(V=V):
                 if V<.1:
@@ -134,7 +134,7 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
         sl = slice(i*grainsize,(i+1)*grainsize,None)        
         if len(pos[sl])>0:
             # Nuggeted field in this cluster
-            eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, sp_sub.f_eval[fi[sl]], 1./V,trace=False))
+            eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, f[fi[sl]], 1./sp_sub['V'], value=pm.logit(s_hat[sl]),trace=False))
 
             # The allele frequency
             s_d.append(pm.Lambda('s_%i'%i,lambda lt=eps_p_f_d[-1]: invlogit(lt),trace=False))

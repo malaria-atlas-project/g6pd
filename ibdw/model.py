@@ -63,6 +63,8 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
     # Unique data locations
     data_mesh, logp_mesh, fi, ui, ti = uniquify(lon,lat)
     
+    s_hat = (pos+1.)/(pos+neg+2.)
+
     normrands = np.random.normal(size=1000)
         
     init_OK = False

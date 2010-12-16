@@ -113,7 +113,10 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
                 else:
                     return 0
 
-            M = pm.Lambda('M', lambda m=m : pm.gp.Mean(mean_fn, m), trace=False)
+            m = pm.Uninformative('m',value=-7)
+            @pm.deterministic(trace=False)
+            def M(m=m):
+                return pm.gp.Mean(mean_fn, m=m)
             
             if constrained:
                 @pm.potential
@@ -126,7 +129,7 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
 
             # Create the covariance & its evaluation at the data locations.
             facdict = dict([(k,1.e6) for k in covariate_keys])
-            facdict[m] = 0
+            facdict['m'] = 0
             @pm.deterministic(trace=False)
             def C(amp=amp, amp_short_frac=amp_short_frac, scale_short=scale_short, scale_long=scale_long, diff_degree=diff_degree, ck=covariate_keys, id=input_data, ui=ui, facdict=facdict):
                 """A covariance function created from the current parameter values."""
@@ -139,8 +142,8 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
             init_OK = True
         except pm.ZeroProbability:
             init_OK = False
-            import gc
-            gc.collect()
+            cls,inst,tb = sys.exc_info()
+            print 'Restarting, message %s\n'%inst.message
 
     # Make f start somewhere a bit sane
     sp_sub.f_eval.value = sp_sub.f_eval.value - np.mean(sp_sub.f_eval.value)

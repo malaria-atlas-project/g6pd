@@ -121,7 +121,7 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
             if constrained:
                 @pm.potential
                 def pripred_check(m=m,amp=amp,V=V,normrands=np.random.normal(size=1000)):
-                    sum_above = np.sum(pm.flib.invlogit(normrands*np.sqrt(amp+V)+m)>threshold_val)
+                    sum_above = np.sum(pm.flib.invlogit(normrands*np.sqrt(amp**2+V)+m)>threshold_val)
                     if float(sum_above) / len(normrands) <= max_p_above:
                         return 0.
                     else:

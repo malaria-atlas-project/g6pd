@@ -35,6 +35,10 @@ __all__ = ['make_model','nested_covariance_fn']
 # lat = np.array([latfun(tau)*180./np.pi for tau in t])    
 # lon = np.array([lonfun(tau)*180./np.pi for tau in t])
 
+constrained = True
+threshold_val = .01
+max_p_above = .1
+
 def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, diff_degree, symm=False):
     """
     A nested covariance funcion with a smooth, anisotropic long-scale part
@@ -51,6 +55,9 @@ def ncf_diag(x, amp, *args, **kwds):
     return amp**2*np.ones(x.shape[:-1])
     
 nested_covariance_fn.diag_call = ncf_diag
+
+def mean_fn(x,m):
+    return pm.gp.zero_fn(x)+m
 
 def make_model(lon,lat,input_data,covariate_keys,pos,neg):
     """
@@ -106,13 +113,24 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
                 else:
                     return 0
 
-            M = pm.Lambda('M', lambda j=1 : pm.gp.Mean(pm.gp.zero_fn), trace=False)
+            M = pm.Lambda('M', lambda m=m : pm.gp.Mean(mean_fn, m), trace=False)
+            
+            if constrained:
+                @pm.potential
+                def pripred_check(m=m,amp=amp,V=V,normrands=np.random.normal(size=1000)):
+                    sum_above = np.sum(pm.flib.invlogit(normrands*np.sqrt(amp+V)+m)>threshold_val)
+                    if float(sum_above) / len(normrands) <= max_p_above:
+                        return 0.
+                    else:
+                        return -np.inf
 
             # Create the covariance & its evaluation at the data locations.
+            facdict = dict([(k,1.e6) for k in covariate_keys])
+            facdict[m] = 0
             @pm.deterministic(trace=False)
-            def C(amp=amp, amp_short_frac=amp_short_frac, scale_short=scale_short, scale_long=scale_long, diff_degree=diff_degree, ck=covariate_keys, id=input_data, ui=ui):
+            def C(amp=amp, amp_short_frac=amp_short_frac, scale_short=scale_short, scale_long=scale_long, diff_degree=diff_degree, ck=covariate_keys, id=input_data, ui=ui, facdict=facdict):
                 """A covariance function created from the current parameter values."""
-                eval_fn = CovarianceWithCovariates(nested_covariance_fn, id, ck, ui)
+                eval_fn = CovarianceWithCovariates(nested_covariance_fn, id, ck, ui, fac=facdict)
                 return pm.gp.FullRankCovariance(eval_fn, amp=amp, amp_short_frac=amp_short_frac, scale_short=scale_short, 
                             scale_long=scale_long, diff_degree=diff_degree)
 

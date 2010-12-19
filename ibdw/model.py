@@ -36,8 +36,8 @@ __all__ = ['make_model','nested_covariance_fn']
 # lon = np.array([lonfun(tau)*180./np.pi for tau in t])
 
 constrained = True
-threshold_val = .01
-max_p_above = .1
+threshold_val = .001
+max_p_above = .01
 
 def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, diff_degree, symm=False):
     """

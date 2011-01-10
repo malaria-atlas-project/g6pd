@@ -86,7 +86,14 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
             # The range parameters. Units are RADIANS. 
             # 1 radian = the radius of the earth, about 6378.1 km
             scale_short = pm.Exponential('scale_short', .1, value=.08)
-            scale_long = pm.Exponential('scale_long', .1, value=1.)
+            scale_long = pm.Exponential('scale_long', .1, value=.9)
+
+            @pm.potential
+            def scale_constraint(s=scale_long):
+                if s>1:
+                    return -np.inf
+                else:
+                    return 0
 
             @pm.potential
             def scale_watcher(short=scale_short,long=scale_long):
@@ -95,6 +102,7 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
                     return 0
                 else:
                     return -np.Inf
+            
 
             # scale_shift = pm.Exponential('scale_shift', .1, value=.08)
             # scale = pm.Lambda('scale',lambda s=scale_shift: s+.01)

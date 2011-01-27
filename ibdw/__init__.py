@@ -1,5 +1,5 @@
 # from mcmc import *
-from generic_mbg import invlogit
+from generic_mbg import invlogit, fast_inplace_mul, fast_inplace_square, fast_inplace_scalar_add
 import pymc as pm
 from cut_geographic import cut_geographic, hemisphere
 import ibdw
@@ -26,12 +26,26 @@ def check_data(input):
     if np.any(input.pos<0) or np.any(input.neg<0):
         raise ValueError, 'Some negative values in pos and neg'
         
-def hbs(sp_sub):
-    hbs = sp_sub.copy('F')
-    hbs = invlogit(hbs)
-    return hbs
+def allele(sp_sub):
+    allele = sp_sub.copy('F')
+    allele = invlogit(hbs)
+    return allele
 
-map_postproc = [hbs]
+def hw_homo(sp_sub):
+    allele = allele(sp_sub)
+    return fast_inplace_square(allele,allele)
+    
+def hw_hetero(sp_sub):
+    p = allele(sp_sub)
+    q = fast_inplace_scalar_add(1,-p)
+    return 2*fast_inplace_mul(p,q)
+    
+def hw_any(sp_sub):
+    homo = hw_homo(sp_sub)
+    hetero = hw_hetero(sp_sub)
+    return hetero+homo
+
+map_postproc = [allele, hw_hetero, hw_homo, hw_any]
 
 regionlist=['Free','Epidemic','Hypoendemic','Mesoendemic','Hyperendemic','Holoendemic']
 

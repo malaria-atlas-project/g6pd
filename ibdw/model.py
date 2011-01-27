@@ -36,8 +36,8 @@ __all__ = ['make_model','nested_covariance_fn']
 # lon = np.array([lonfun(tau)*180./np.pi for tau in t])
 
 constrained = True
-threshold_val = .01
-max_p_above = .1
+threshold_val = 0.01
+max_p_above = 0.000001
 
 def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, diff_degree, symm=False):
     """
@@ -121,7 +121,7 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
                 else:
                     return 0
 
-            m = pm.Uninformative('m',value=-7)
+            m = pm.Uninformative('m',value=-25)
             @pm.deterministic(trace=False)
             def M(m=m):
                 return pm.gp.Mean(mean_fn, m=m)

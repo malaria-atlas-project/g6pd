@@ -32,9 +32,9 @@ def allele(sp_sub):
     return allele
 
 def hw_homo(sp_sub):
-    allele = allele(sp_sub)
-    allele = fast_inplace_square(allele)
-    return allele
+    hom = allele(sp_sub)
+    fast_inplace_square(hom)
+    return hom
     
 #def hw_hetero(sp_sub):
 #    p = allele(sp_sub)

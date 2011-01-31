@@ -28,7 +28,7 @@ def check_data(input):
         
 def allele(sp_sub):
     allele = sp_sub.copy('F')
-    allele = invlogit(hbs)
+    allele = invlogit(sp_sub)
     return allele
 
 def hw_homo(sp_sub):

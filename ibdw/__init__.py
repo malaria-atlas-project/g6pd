@@ -33,22 +33,23 @@ def allele(sp_sub):
 
 def hw_homo(sp_sub):
     hom = allele(sp_sub)
-    fast_inplace_square(hom)
+    hom = fast_inplace_mul(hom,hom)
     return hom
     
-#def hw_hetero(sp_sub):
-#    p = allele(sp_sub)
-#    q = fast_inplace_scalar_add(1,-p)
-#    fast_inplace_mul(p,q)
-#    return 2*p
+def hw_hetero(sp_sub):
+    p = allele(sp_sub)
+    q = fast_inplace_scalar_add(-p,1)
+    fast_inplace_mul(p,q)
+    return 2*p
     
 def hw_any(sp_sub):
     homo = hw_homo(sp_sub)
-#    hetero = hw_hetero(sp_sub)
-#    return hetero+homo
+    hetero = hw_hetero(sp_sub)
+    return hetero+homo
 
-#map_postproc = [allele, hw_hetero, hw_homo, hw_any]
-map_postproc = [allele, hw_homo, hw_any]
+# map_postproc = [allele, hw_hetero, hw_homo, hw_any]
+# map_postproc = [allele hw_homo, hw_any]
+map_postproc = [allele, hw_homo, hw_hetero, hw_any]
 
 regionlist=['Free','Epidemic','Hypoendemic','Mesoendemic','Hyperendemic','Holoendemic']
 

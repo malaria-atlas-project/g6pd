@@ -37,7 +37,7 @@ __all__ = ['make_model','nested_covariance_fn']
 
 constrained = True
 threshold_val = 0.01
-max_p_above = 0.000001
+max_p_above = 0.00001
 
 def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, diff_degree, symm=False):
     """

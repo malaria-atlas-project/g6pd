@@ -33,7 +33,7 @@ def allele(sp_sub):
 
 def hw_homo(sp_sub):
     hom = allele(sp_sub)
-    hom = fast_inplace_mul(hom,hom)
+    fast_inplace_mul(hom,hom)
     return hom
     
 def hw_hetero(sp_sub):

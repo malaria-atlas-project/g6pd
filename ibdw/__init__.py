@@ -61,18 +61,67 @@ def joint_areal_means(gc, regionlist=regionlist):
     g = dict([(k, lambda sp_sub, x, a=v['geom'].area: invlogit(sp_sub(x))) for k,v in gc.iteritems()])
     return h, g
     
-def independent_areal_means(gc):
+def allele(gc):
     if len(gc)>1:
         raise ValueError, "Got geometry collection containing more than one multipolygon: %s"%gc.keys()
     
     def h(**region):
         return np.array(region.values()[0])
 
-    g = {gc.keys()[0]: lambda sp_sub, x: invlogit(sp_sub(x))}
+    def f(sp_sub, x):
+        p = pm.invlogit(sp_sub(x))
+        return p
+
+    g = {gc.keys()[0]: f}
     
     return h,g
 
-areal_postproc = [independent_areal_means]
+def hw_hetero(gc):
+    if len(gc)>1:
+        raise ValueError, "Got geometry collection containing more than one multipolygon: %s"%gc.keys()
+    
+    def h(**region):
+        return np.array(region.values()[0])
+
+    def f(sp_sub, x):
+        p = pm.invlogit(sp_sub(x))
+        return 2*p*(1-p)
+
+    g = {gc.keys()[0]: f}
+    
+    return h,g
+
+def hw_homo(gc):
+    if len(gc)>1:
+        raise ValueError, "Got geometry collection containing more than one multipolygon: %s"%gc.keys()
+    
+    def h(**region):
+        return np.array(region.values()[0])
+
+    def f(sp_sub, x):
+        p = pm.invlogit(sp_sub(x))
+        return p**2
+
+    g = {gc.keys()[0]: f}
+    
+    return h,g
+
+def hw_any(gc):
+    if len(gc)>1:
+        raise ValueError, "Got geometry collection containing more than one multipolygon: %s"%gc.keys()
+    
+    def h(**region):
+        return np.array(region.values()[0])
+
+    def f(sp_sub, x):
+        p = pm.invlogit(sp_sub(x))
+        return 2*p*(1-p)+p**2
+
+    g = {gc.keys()[0]: f}
+    
+    return h,g
+
+areal_postproc = [allele, hw_homo, hw_hetero, hw_any]
 
 def mcmc_init(M):
     M.use_step_method(pm.gp.GPParentAdaptiveMetropolis, [M.amp, M.amp_short_frac, M.scale_short, M.scale_long, M.diff_degree])

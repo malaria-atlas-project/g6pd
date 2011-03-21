@@ -61,7 +61,7 @@ def joint_areal_means(gc, regionlist=regionlist):
     g = dict([(k, lambda sp_sub, x, a=v['geom'].area: invlogit(sp_sub(x))) for k,v in gc.iteritems()])
     return h, g
     
-def allele(gc):
+def area_allele(gc):
     if len(gc)>1:
         raise ValueError, "Got geometry collection containing more than one multipolygon: %s"%gc.keys()
     
@@ -76,7 +76,7 @@ def allele(gc):
     
     return h,g
 
-def hw_hetero(gc):
+def area_hw_hetero(gc):
     if len(gc)>1:
         raise ValueError, "Got geometry collection containing more than one multipolygon: %s"%gc.keys()
     
@@ -91,7 +91,7 @@ def hw_hetero(gc):
     
     return h,g
 
-def hw_homo(gc):
+def area_hw_homo(gc):
     if len(gc)>1:
         raise ValueError, "Got geometry collection containing more than one multipolygon: %s"%gc.keys()
     
@@ -106,7 +106,7 @@ def hw_homo(gc):
     
     return h,g
 
-def hw_any(gc):
+def area_hw_any(gc):
     if len(gc)>1:
         raise ValueError, "Got geometry collection containing more than one multipolygon: %s"%gc.keys()
     
@@ -121,7 +121,7 @@ def hw_any(gc):
     
     return h,g
 
-areal_postproc = [allele, hw_homo, hw_hetero, hw_any]
+areal_postproc = [area_allele, area_hw_homo, area_hw_hetero, area_hw_any]
 
 def mcmc_init(M):
     M.use_step_method(pm.gp.GPParentAdaptiveMetropolis, [M.amp, M.amp_short_frac, M.scale_short, M.scale_long, M.diff_degree])

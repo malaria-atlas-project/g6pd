@@ -51,6 +51,15 @@ def hw_any(sp_sub):
 # map_postproc = [allele hw_homo, hw_any]
 map_postproc = [allele, hw_homo, hw_hetero, hw_any]
 
+def validate_allele(data):
+    obs = data.pos
+    n = data.pos + data.neg
+    def f(sp_sub):
+        return pm.invlogit(sp_sub)
+    return obs, n, f
+
+validate_postproc = [validate_allele]
+
 regionlist=['Free','Epidemic','Hypoendemic','Mesoendemic','Hyperendemic','Holoendemic']
 
 def joint_areal_means(gc, regionlist=regionlist): 

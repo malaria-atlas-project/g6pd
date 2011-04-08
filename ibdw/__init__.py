@@ -54,8 +54,8 @@ map_postproc = [allele, hw_homo, hw_hetero, hw_any]
 def validate_allele(data):
     obs = data.pos
     n = data.pos + data.neg
-    def f(sp_sub):
-        return pm.invlogit(sp_sub)
+    def f(sp_sub, n=n):
+        return pm.rbinomial(n=n,p=pm.invlogit(sp_sub))
     return obs, n, f
 
 validate_postproc = [validate_allele]

@@ -26,25 +26,25 @@ def check_data(input):
     if np.any(input.pos<0) or np.any(input.neg<0):
         raise ValueError, 'Some negative values in pos and neg'
         
-def allele(sp_sub):
+def allele(sp_sub, ceiling):
     allele = sp_sub.copy('F')
-    allele = invlogit(allele)
+    allele = invlogit(allele)*ceiling
     return allele
 
-def hw_homo(sp_sub):
-    hom = allele(sp_sub)
+def hw_homo(sp_sub, ceiling):
+    hom = allele(sp_sub, ceiling)
     fast_inplace_mul(hom,hom)
     return hom
     
-def hw_hetero(sp_sub):
-    p = allele(sp_sub)
+def hw_hetero(sp_sub, ceiling):
+    p = allele(sp_sub, ceiling)
     q = fast_inplace_scalar_add(-p,1)
     fast_inplace_mul(p,q)
     return 2*p
     
-def hw_any(sp_sub):
-    homo = hw_homo(sp_sub)
-    hetero = hw_hetero(sp_sub)
+def hw_any(sp_sub, ceiling):
+    homo = hw_homo(sp_sub, ceiling)
+    hetero = hw_hetero(sp_sub, ceiling)
     return hetero+homo
 
 # map_postproc = [allele, hw_hetero, hw_homo, hw_any]
@@ -54,22 +54,14 @@ map_postproc = [allele, hw_homo, hw_hetero, hw_any]
 def validate_allele(data):
     obs = data.pos
     n = data.pos + data.neg
-    def f(sp_sub, n=n):
-        return pm.rbinomial(n=n,p=pm.invlogit(sp_sub))
+    def f(sp_sub, ceiling, n=n):
+        return pm.rbinomial(n=n,p=pm.invlogit(sp_sub)*ceiling)
     return obs, n, f
 
 validate_postproc = [validate_allele]
 
 regionlist=['Free','Epidemic','Hypoendemic','Mesoendemic','Hyperendemic','Holoendemic']
 
-def joint_areal_means(gc, regionlist=regionlist): 
-
-    def h(**kwds):
-        return np.array([kwds[r] for r in regionlist])
-
-    g = dict([(k, lambda sp_sub, x, a=v['geom'].area: invlogit(sp_sub(x))) for k,v in gc.iteritems()])
-    return h, g
-    
 def area_allele(gc):
     if len(gc)>1:
         raise ValueError, "Got geometry collection containing more than one multipolygon: %s"%gc.keys()
@@ -77,8 +69,8 @@ def area_allele(gc):
     def h(**region):
         return np.array(region.values()[0])
 
-    def f(sp_sub, x):
-        p = pm.invlogit(sp_sub(x))
+    def f(sp_sub, x, ceiling):
+        p = pm.invlogit(sp_sub(x))*ceiling
         return p
 
     g = {gc.keys()[0]: f}
@@ -92,8 +84,8 @@ def area_hw_hetero(gc):
     def h(**region):
         return np.array(region.values()[0])
 
-    def f(sp_sub, x):
-        p = pm.invlogit(sp_sub(x))
+    def f(sp_sub, x, ceiling):
+        p = pm.invlogit(sp_sub(x))*ceiling
         return 2*p*(1-p)
 
     g = {gc.keys()[0]: f}
@@ -107,8 +99,8 @@ def area_hw_homo(gc):
     def h(**region):
         return np.array(region.values()[0])
 
-    def f(sp_sub, x):
-        p = pm.invlogit(sp_sub(x))
+    def f(sp_sub, x, ceiling):
+        p = pm.invlogit(sp_sub(x))*ceiling
         return p**2
 
     g = {gc.keys()[0]: f}
@@ -122,8 +114,8 @@ def area_hw_any(gc):
     def h(**region):
         return np.array(region.values()[0])
 
-    def f(sp_sub, x):
-        p = pm.invlogit(sp_sub(x))
+    def f(sp_sub, x, ceiling):
+        p = pm.invlogit(sp_sub(x))*ceiling
         return 2*p*(1-p)+p**2
 
     g = {gc.keys()[0]: f}

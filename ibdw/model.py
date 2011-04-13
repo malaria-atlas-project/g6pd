@@ -35,9 +35,9 @@ __all__ = ['make_model','nested_covariance_fn']
 # lat = np.array([latfun(tau)*180./np.pi for tau in t])    
 # lon = np.array([lonfun(tau)*180./np.pi for tau in t])
 
-constrained = True
-threshold_val = 0.01
-max_p_above = 0.00001
+# constrained = True
+# threshold_val = 0.01
+# max_p_above = 0.00001
 
 def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, diff_degree, symm=False):
     """
@@ -125,15 +125,17 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
             @pm.deterministic(trace=False)
             def M(m=m):
                 return pm.gp.Mean(mean_fn, m=m)
+                
+            ceiling = pm.Beta('ceiling',10,50,value=.2)
             
-            if constrained:
-                @pm.potential
-                def pripred_check(m=m,amp=amp,V=V,normrands=np.random.normal(size=1000)):
-                    sum_above = np.sum(pm.flib.invlogit(normrands*np.sqrt(amp**2+V)+m)>threshold_val)
-                    if float(sum_above) / len(normrands) <= max_p_above:
-                        return 0.
-                    else:
-                        return -np.inf
+            # if constrained:
+            #     @pm.potential
+            #     def pripred_check(m=m,amp=amp,V=V,ceiling=ceiling,normrands=np.random.normal(size=1000)):
+            #         sum_above = np.sum(pm.flib.invlogit(normrands*np.sqrt(amp**2+V)+m)*ceiling>threshold_val)
+            #         if float(sum_above) / len(normrands) <= max_p_above:
+            #             return 0.
+            #         else:
+            #             return -np.inf
 
             # Create the covariance & its evaluation at the data locations.
             facdict = dict([(k,1.e6) for k in covariate_keys])
@@ -168,7 +170,7 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
             eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, sp_sub.f_eval[fi[sl]], 1./V, value=pm.logit(s_hat[sl]), trace=False))            
 
             # The allele frequency
-            s_d.append(pm.Lambda('s_%i'%i,lambda lt=eps_p_f_d[-1]: invlogit(lt),trace=False))
+            s_d.append(pm.Lambda('s_%i'%i,lambda lt=eps_p_f_d[-1], ceiling=ceiling: invlogit(lt)*ceiling,trace=False))
 
             # The observed allele frequencies
             data_d.append(pm.Binomial('data_%i'%i, pos[sl]+neg[sl], s_d[-1], value=pos[sl], observed=True))

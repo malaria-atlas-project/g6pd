@@ -35,9 +35,9 @@ __all__ = ['make_model','nested_covariance_fn']
 # lat = np.array([latfun(tau)*180./np.pi for tau in t])    
 # lon = np.array([lonfun(tau)*180./np.pi for tau in t])
 
-# constrained = True
-# threshold_val = 0.01
-# max_p_above = 0.00001
+constrained = True
+threshold_val = 0.01
+max_p_above = 0.00001
 
 def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, diff_degree, symm=False):
     """
@@ -128,14 +128,14 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
                 
             ceiling = pm.Beta('ceiling',10,50,value=.2)
             
-            # if constrained:
-            #     @pm.potential
-            #     def pripred_check(m=m,amp=amp,V=V,ceiling=ceiling,normrands=np.random.normal(size=1000)):
-            #         sum_above = np.sum(pm.flib.invlogit(normrands*np.sqrt(amp**2+V)+m)*ceiling>threshold_val)
-            #         if float(sum_above) / len(normrands) <= max_p_above:
-            #             return 0.
-            #         else:
-            #             return -np.inf
+            if constrained:
+                @pm.potential
+                def pripred_check(m=m,amp=amp,V=V,ceiling=ceiling,normrands=np.random.normal(size=1000)):
+                    sum_above = np.sum(pm.flib.invlogit(normrands*np.sqrt(amp**2+V)+m)*ceiling>threshold_val)
+                    if float(sum_above) / len(normrands) <= max_p_above:
+                        return 0.
+                    else:
+                        return -np.inf
 
             # Create the covariance & its evaluation at the data locations.
             facdict = dict([(k,1.e6) for k in covariate_keys])

@@ -82,7 +82,7 @@ def make_model(lon,lat,input_data,covariate_keys,n_male,male_pos,n_fem,fem_pos):
             def M(m=m):
                 return pm.gp.Mean(mean_fn, m=m)
                 
-            ceiling = pm.Beta('ceiling',10,50,value=1, observed=True)
+            ceiling = pm.Beta('ceiling',10,50,value=.9999, observed=True)
             
             if constrained:
                 @pm.potential

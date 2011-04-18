@@ -10,7 +10,7 @@ import gc
 from map_utils import *
 from generic_mbg import *
 import generic_mbg
-from ibdw import cut_matern, cut_gaussian
+from g6pd import cut_matern, cut_gaussian
 
 __all__ = ['make_model','nested_covariance_fn']
 
@@ -35,31 +35,17 @@ __all__ = ['make_model','nested_covariance_fn']
 # lat = np.array([latfun(tau)*180./np.pi for tau in t])    
 # lon = np.array([lonfun(tau)*180./np.pi for tau in t])
 
-constrained = True
+constrained = False
 threshold_val = 0.01
 max_p_above = 0.00001
 
-def nested_covariance_fn(x,y, amp, amp_short_frac, scale_short, scale_long, diff_degree, symm=False):
-    """
-    A nested covariance funcion with a smooth, anisotropic long-scale part
-    and a rough, isotropic short-scale part.
-    """
-    amp_short = amp*np.sqrt(amp_short_frac)
-    amp_long = amp*np.sqrt(1-amp_short_frac)
-    out = cut_matern(x,y,amp=amp_short,scale=scale_short,symm=symm,diff_degree=diff_degree)
-    long_part = cut_gaussian(x,y,amp=amp_long,scale=scale_long,symm=symm)
-    out += long_part
-    return out
-
-def ncf_diag(x, amp, *args, **kwds):
-    return amp**2*np.ones(x.shape[:-1])
-    
-nested_covariance_fn.diag_call = ncf_diag
-
 def mean_fn(x,m):
     return pm.gp.zero_fn(x)+m
+    
+def p_fem_def(p,h):
+    return p**2 + 2*p*(1-p)*h
 
-def make_model(lon,lat,input_data,covariate_keys,pos,neg):
+def make_model(lon,lat,input_data,covariate_keys,n_male,male_pos,n_fem,fem_pos):
     """
     This function is required by the generic MBG code.
     """
@@ -70,63 +56,34 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
     # Unique data locations
     data_mesh, logp_mesh, fi, ui, ti = uniquify(lon,lat)
     
-    s_hat = (pos+1.)/(pos+neg+2.)
+    a = pm.Exponential('a', .01, value=1)
+    b = pm.Exponential('b', .01, value=1)
+    
 
     normrands = np.random.normal(size=1000)
         
     init_OK = False
     while not init_OK:
         try:
-            # The fraction of the partial sill going to 'short' variation.
-            amp_short_frac = pm.Uniform('amp_short_frac',0,1)
-
             # The partial sill.
             amp = pm.Exponential('amp', .1, value=1.)
 
             # The range parameters. Units are RADIANS. 
             # 1 radian = the radius of the earth, about 6378.1 km
-            scale_short = pm.Exponential('scale_short', .1, value=.08)
-            scale_long = pm.Exponential('scale_long', .1, value=.9)
-
-            @pm.potential
-            def scale_constraint(s=scale_long):
-                if s>1:
-                    return -np.inf
-                else:
-                    return 0
-
-            @pm.potential
-            def scale_watcher(short=scale_short,long=scale_long):
-                """A constraint: the 'long' scale must be bigger than the 'short' scale."""
-                if long>short:
-                    return 0
-                else:
-                    return -np.Inf
-            
-
-            # scale_shift = pm.Exponential('scale_shift', .1, value=.08)
-            # scale = pm.Lambda('scale',lambda s=scale_shift: s+.01)
-            scale_short_in_km = scale_short*6378.1
-            scale_long_in_km = scale_long*6378.1
+            scale = pm.Exponential('scale_short', .1, value=.08)            
 
             # This parameter controls the degree of differentiability of the field.
             diff_degree = pm.Uniform('diff_degree', .01, 3)
 
             # The nugget variance.
-            V = pm.Exponential('V', .1, value=.2)
-            @pm.potential
-            def V_constraint(V=V):
-                if V<.1:
-                    return -np.inf
-                else:
-                    return 0
-
+            V = pm.Exponential('V', .1, value=.1, observed=True)
+            
             m = pm.Uninformative('m',value=-25)
             @pm.deterministic(trace=False)
             def M(m=m):
                 return pm.gp.Mean(mean_fn, m=m)
                 
-            ceiling = pm.Beta('ceiling',10,50,value=.2)
+            ceiling = pm.Beta('ceiling',10,50,value=1, observed=True)
             
             if constrained:
                 @pm.potential
@@ -141,11 +98,10 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
             facdict = dict([(k,1.e6) for k in covariate_keys])
             facdict['m'] = 0
             @pm.deterministic(trace=False)
-            def C(amp=amp, amp_short_frac=amp_short_frac, scale_short=scale_short, scale_long=scale_long, diff_degree=diff_degree, ck=covariate_keys, id=input_data, ui=ui, facdict=facdict):
+            def C(amp=amp, scale=scale, diff_degree=diff_degree, ck=covariate_keys, id=input_data, ui=ui, facdict=facdict):
                 """A covariance function created from the current parameter values."""
-                eval_fn = CovarianceWithCovariates(nested_covariance_fn, id, ck, ui, fac=facdict)
-                return pm.gp.FullRankCovariance(eval_fn, amp=amp, amp_short_frac=amp_short_frac, scale_short=scale_short, 
-                            scale_long=scale_long, diff_degree=diff_degree)
+                eval_fn = CovarianceWithCovariates(cut_matern, id, ck, ui, fac=facdict)
+                return pm.gp.FullRankCovariance(eval_fn, amp=amp, scale=scale, diff_degree=diff_degree)
 
             sp_sub = pm.gp.GPSubmodel('sp_sub', M, C, logp_mesh, tally_f=False)
                 
@@ -161,7 +117,9 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
     # Loop over data clusters
     eps_p_f_d = []
     s_d = []
-    data_d = []
+    male_d = []
+    het_def_d = []
+    fem_d = []
 
     for i in xrange(len(pos)/grainsize+1):
         sl = slice(i*grainsize,(i+1)*grainsize,None)        
@@ -171,9 +129,16 @@ def make_model(lon,lat,input_data,covariate_keys,pos,neg):
 
             # The allele frequency
             s_d.append(pm.Lambda('s_%i'%i,lambda lt=eps_p_f_d[-1], ceiling=ceiling: invlogit(lt)*ceiling,trace=False))
-
-            # The observed allele frequencies
-            data_d.append(pm.Binomial('data_%i'%i, pos[sl]+neg[sl], s_d[-1], value=pos[sl], observed=True))
+            
+            where_fem = np.where(True-np.isnan(n_male[sl]))[0]
+            where_male = np.where(True-np.isnan(n_fem[sl]))[0]
+            if len(where_male) > 0:
+                male_d.append(pm.Binomial('male_%i'%i, n_male[sl][where_male], s_d[-1][where_male], value=male_pos[sl][where_male], observed=True))
+            if len(where_fem) > 0:
+                het_def_d.append(pm.Beta('het_def_%i'%i, a=a, b=b, size=len(where_fem)))
+                p = sd[-1][where_fem]
+                p_def = pm.Lambda('p_def', lambda p=p, h=het_def: p_fem_def(p, h), trace=False)
+                fem_d.append(pm.Binomial('fem_%i'%i, n_fem[sl][where_fem], p_def, value=fem_pos[sl][where_fem], observed=True))
     
     # The field plus the nugget
     @pm.deterministic

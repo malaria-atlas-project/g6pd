@@ -2,10 +2,10 @@
 from generic_mbg import invlogit, fast_inplace_mul, fast_inplace_square, fast_inplace_scalar_add
 import pymc as pm
 from cut_geographic import cut_geographic, hemisphere
-import ibdw
+import g6pd
 import numpy as np
 import os
-root = os.path.split(ibdw.__file__)[0]
+root = os.path.split(g6pd.__file__)[0]
 pm.gp.cov_funs.cov_utils.mod_search_path.append(root)
 
 import cg
@@ -16,53 +16,65 @@ cut_gaussian = pm.gp.cov_utils.covariance_wrapper('gaussian', 'pymc.gp.cov_funs.
 
 nugget_labels = {'sp_sub': 'V'}
 obs_labels= {'sp_sub': 'eps_p_f'}
-non_cov_columns = {'pos': 'float', 'neg': 'float'}
+non_cov_columns = {'n_males': 'float', 'males_pos': 'float', 'n_females': 'float', 'females_pos': 'float'}
 
 def check_data(input):
-    if np.any(input.pos+input.neg)==0:
-        raise ValueError, 'Some sample sizes are zero.'
-    if np.any(np.isnan(input.pos)) or np.any(np.isnan(input.neg)):
-        raise ValueError, 'Some NaNs in input'
-    if np.any(input.pos<0) or np.any(input.neg<0):
-        raise ValueError, 'Some negative values in pos and neg'
+    for n, pos in zip(['n_male', 'n_fem'], ['male_pos', 'fem_pos']):
+        if np.any(input[n])==0:
+            raise ValueError, 'Some sample sizes are zero.'
+        if np.any(np.isnan(input[pos])):
+            raise ValueError, 'Some NaNs in input'
+        if np.any(input[pos]<0) or np.any(input[pos]>input[n]):
+            raise ValueError, 'Some observations are negative.'
         
-def allele(sp_sub, ceiling):
+def male_def(sp_sub, ceiling):
     allele = sp_sub.copy('F')
     allele = invlogit(allele)*ceiling
     return allele
 
-def hw_homo(sp_sub, ceiling):
-    hom = allele(sp_sub, ceiling)
+def fem_def_conservative(sp_sub, ceiling):
+    hom = male_def(sp_sub, ceiling)
     fast_inplace_mul(hom,hom)
     return hom
     
 def hw_hetero(sp_sub, ceiling):
-    p = allele(sp_sub, ceiling)
+    p = male_def(sp_sub, ceiling)
     q = fast_inplace_scalar_add(-p,1)
     fast_inplace_mul(p,q)
     return 2*p
     
-def hw_any(sp_sub, ceiling):
-    homo = hw_homo(sp_sub, ceiling)
+def fem_def(sp_sub, ceiling, a, b):
+    homo = male_def(sp_sub, ceiling)
     hetero = hw_hetero(sp_sub, ceiling)
+    het_def = pm.rbeta(a,b)
+    hetero *= het_def
     return hetero+homo
 
-# map_postproc = [allele, hw_hetero, hw_homo, hw_any]
-# map_postproc = [allele hw_homo, hw_any]
-map_postproc = [allele, hw_homo, hw_hetero, hw_any]
+map_postproc = [male_def, fem_def_conservative, fem_def]
 
-def validate_allele(data):
-    obs = data.pos
-    n = data.pos + data.neg
+def validate_male(data):
+    obs = data.male_pos
+    n = data.n_male
     def f(sp_sub, ceiling, n=n):
         return pm.rbinomial(n=n,p=pm.invlogit(sp_sub)*ceiling)
     return obs, n, f
+    
+def validate_female(data):
+    obs = data.fem_pos
+    n = data.n_female
+    def f(sp_sub, ceiling, a, b, n=n):
+        p = pm.invlogit(sp_sub)*ceiling
+        h = pm.rbeta(a,b,size=len(sp_sub))
+        p_def = g6pd.p_fem_def(p,h)
+        return pm.rbinomial(n=n, p=p)
+    return obs, n, f
 
-validate_postproc = [validate_allele]
+validate_postproc = [validate_male]
+# validate_postproc = [validate_female]
 
 regionlist=['Free','Epidemic','Hypoendemic','Mesoendemic','Hyperendemic','Holoendemic']
 
-def area_allele(gc):
+def area_male(gc):
     if len(gc)>1:
         raise ValueError, "Got geometry collection containing more than one multipolygon: %s"%gc.keys()
     
@@ -77,22 +89,7 @@ def area_allele(gc):
     
     return h,g
 
-def area_hw_hetero(gc):
-    if len(gc)>1:
-        raise ValueError, "Got geometry collection containing more than one multipolygon: %s"%gc.keys()
-    
-    def h(**region):
-        return np.array(region.values()[0])
-
-    def f(sp_sub, x, ceiling):
-        p = pm.invlogit(sp_sub(x))*ceiling
-        return 2*p*(1-p)
-
-    g = {gc.keys()[0]: f}
-    
-    return h,g
-
-def area_hw_homo(gc):
+def area_fem_def_conservative(gc):
     if len(gc)>1:
         raise ValueError, "Got geometry collection containing more than one multipolygon: %s"%gc.keys()
     
@@ -107,25 +104,26 @@ def area_hw_homo(gc):
     
     return h,g
 
-def area_hw_any(gc):
+def area_fem_def(gc):
     if len(gc)>1:
         raise ValueError, "Got geometry collection containing more than one multipolygon: %s"%gc.keys()
     
     def h(**region):
         return np.array(region.values()[0])
 
-    def f(sp_sub, x, ceiling):
+    def f(sp_sub, x, ceiling, a, b):
         p = pm.invlogit(sp_sub(x))*ceiling
-        return 2*p*(1-p)+p**2
+        h = pm.rbeta(a,b,size=len(p))
+        return g6pd.p_fem_def(p,h)
 
     g = {gc.keys()[0]: f}
     
     return h,g
 
-areal_postproc = [area_allele, area_hw_homo, area_hw_hetero, area_hw_any]
+areal_postproc = [area_male, area_fem_def_conservative, area_fem_def]
 
 def mcmc_init(M):
-    M.use_step_method(pm.gp.GPParentAdaptiveMetropolis, [M.amp, M.amp_short_frac, M.scale_short, M.scale_long, M.diff_degree, M.ceiling])
+    M.use_step_method(pm.gp.GPParentAdaptiveMetropolis, [M.amp, M.amp_short_frac, M.scale_short, M.scale_long, M.diff_degree, M.ceiling, M.a, M.b])
     M.use_step_method(pm.gp.GPEvaluationGibbs, M.sp_sub, M.V, M.eps_p_f)
                     
 metadata_keys = ['fi','ti','ui']

@@ -132,7 +132,7 @@ def make_model(lon,lat,input_data,covariate_keys,n_male,male_pos,n_fem,fem_pos):
             if len(where_male) > 0:
                 male_d.append(pm.Binomial('male_%i'%i, n_male[sl][where_male], s_d[-1][where_male], value=male_pos[sl][where_male], observed=True))
             if len(where_fem) > 0:
-                het_def_d.append(pm.Beta('het_def_%i'%i, alpha=a, beta=b, size=len(where_fem)))
+                het_def_d.append(pm.Beta('het_def_%i'%i, alpha=a, beta=b, size=len(where_fem), trace=False))
                 p = s_d[-1][where_fem]
                 p_def = pm.Lambda('p_def', lambda p=p, h=het_def_d[-1]: p_fem_def(p, h), trace=False)
                 fem_d.append(pm.Binomial('fem_%i'%i, n_fem[sl][where_fem], p_def, value=fem_pos[sl][where_fem], observed=True))

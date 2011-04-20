@@ -22,7 +22,7 @@ def check_data(input):
     for n, pos in zip(['n_male', 'n_fem'], ['male_pos', 'fem_pos']):
         if np.any(input[n])==0:
             raise ValueError, 'Some sample sizes are zero.'
-        if np.any(np.isnan(input[pos])):
+        if np.all(np.isnan(input[pos])) or np.all(np.isnan(input[neg])):
             raise ValueError, 'Some NaNs in input'
         if np.any(input[pos]<0) or np.any(input[pos]>input[n]):
             raise ValueError, 'Some observations are negative.'

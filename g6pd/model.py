@@ -127,8 +127,8 @@ def make_model(lon,lat,input_data,covariate_keys,n_male,male_pos,n_fem,fem_pos):
             # The allele frequency
             s_d.append(pm.Lambda('s_%i'%i,lambda lt=eps_p_f_d[-1], ceiling=ceiling: invlogit(lt)*ceiling,trace=False))
             
-            where_fem = np.where(True-np.isnan(n_male[sl]))[0]
-            where_male = np.where(True-np.isnan(n_fem[sl]))[0]
+            where_male = np.where(True-np.isnan(n_male[sl]))[0]
+            where_fem = np.where(True-np.isnan(n_fem[sl]))[0]
             if len(where_male) > 0:
                 male_d.append(pm.Binomial('male_%i'%i, n_male[sl][where_male], s_d[-1][where_male], value=male_pos[sl][where_male], observed=True))
             if len(where_fem) > 0:

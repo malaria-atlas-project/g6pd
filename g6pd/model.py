@@ -11,8 +11,6 @@ from generic_mbg import *
 import generic_mbg
 from g6pd import cut_matern, cut_gaussian
 
-__all__ = ['make_model','nested_covariance_fn']
-
 # The parameterization of the cut between western and eastern hemispheres.
 #
 # t = np.linspace(0,1,501)

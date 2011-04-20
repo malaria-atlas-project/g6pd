@@ -118,7 +118,7 @@ def make_model(lon,lat,input_data,covariate_keys,n_male,male_pos,n_fem,fem_pos):
     het_def_d = []
     fem_d = []
 
-    for i in xrange(len(pos)/grainsize+1):
+    for i in xrange(len(male_pos)/grainsize+1):
         sl = slice(i*grainsize,(i+1)*grainsize,None)        
         if len(male_pos[sl])>0:
             # Nuggeted field in this cluster

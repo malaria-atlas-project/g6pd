@@ -16,7 +16,7 @@ cut_gaussian = pm.gp.cov_utils.covariance_wrapper('gaussian', 'pymc.gp.cov_funs.
 
 nugget_labels = {'sp_sub': 'V'}
 obs_labels= {'sp_sub': 'eps_p_f'}
-non_cov_columns = {'n_males': 'float', 'males_pos': 'float', 'n_females': 'float', 'females_pos': 'float'}
+non_cov_columns = {'n_males': 'float', 'males_pos': 'float', 'n_fem': 'float', 'fem_pos': 'float'}
 
 def check_data(input):
     for n, pos in zip(['n_male', 'n_fem'], ['male_pos', 'fem_pos']):

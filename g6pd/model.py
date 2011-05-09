@@ -85,7 +85,7 @@ def make_model(lon,lat,input_data,covariate_keys,n_male,male_pos,n_fem,fem_pos):
             if constrained:
                 @pm.potential
                 def pripred_check(m=m,amp=amp,V=V):
-                    p_above = scipy.stats.distributions.norm.cdf(m-pm.logit(threshold_val), 0, amp**2+V)
+                    p_above = scipy.stats.distributions.norm.cdf(m-pm.logit(threshold_val), 0, np.sqrt(amp**2+V))
                     if p_above <= max_p_above:
                         return 0.
                     else:

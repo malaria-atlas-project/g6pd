@@ -70,6 +70,13 @@ def make_model(lon,lat,input_data,covariate_keys,n_male,male_pos,n_fem,fem_pos):
 
             # The nugget variance.
             V = pm.Exponential('V', .1, value=.1)
+
+            @pm.potential
+            def V_constraint(V=V):
+                if V<.1:
+                    return -np.inf
+                else:
+                    return 0
             
             m = pm.Uninformative('m',value=-25)
             @pm.deterministic(trace=False)

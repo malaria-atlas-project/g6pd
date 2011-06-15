@@ -127,5 +127,10 @@ def make_model(lon,lat,input_data,covariate_keys,n_male,male_pos,n_fem,fem_pos):
     def eps_p_f(eps_p_fd = eps_p_f_d):
         """Concatenated version of eps_p_f, for postprocessing & Gibbs sampling purposes"""
         return np.hstack(eps_p_fd)
+
+    # The heterozygote deficiency
+    @pm.deterministic
+    def het_def(het_def_d = het_def_d):
+        return np.hstack(het_def_d)
             
     return locals()

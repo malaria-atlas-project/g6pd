@@ -73,7 +73,7 @@ def make_model(lon,lat,input_data,covariate_keys,n_male,male_pos,n_fem,fem_pos):
             diff_degree = pm.Uniform('diff_degree', .01, 3)
 
             # The nugget variance.
-            V = pm.Exponential('V', .1, value=.1, observed=True)
+            V = pm.Exponential('V', .1, value=.1)
             
             m = pm.Uninformative('m',value=-25)
             @pm.deterministic(trace=False)

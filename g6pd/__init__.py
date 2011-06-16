@@ -124,7 +124,7 @@ areal_postproc = [area_male, area_fem_def_conservative, area_fem_def]
 
 def mcmc_init(M):
     M.use_step_method(pm.gp.GPParentAdaptiveMetropolis, [M.amp, M.scale, M.diff_degree, M.ceiling, M.a, M.b])
-    M.use_step_method(pm.gp.GPEvaluationGibbs, M.sp_sub, M.V, M.eps_p_f)
+    M.use_step_method(pm.gp.GPEvaluationGibbs, M.sp_sub, M.V, M.eps_p_f_d)
                     
 metadata_keys = ['fi','ti','ui']
 

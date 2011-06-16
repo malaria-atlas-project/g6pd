@@ -34,10 +34,6 @@ from scipy.stats import distributions
 # lat = np.array([latfun(tau)*180./np.pi for tau in t])    
 # lon = np.array([lonfun(tau)*180./np.pi for tau in t])
 
-constrained = False
-threshold_val = 0.01
-max_p_above = 0.00001
-
 def mean_fn(x,m):
     return pm.gp.zero_fn(x)+m
     
@@ -67,29 +63,25 @@ def make_model(lon,lat,input_data,covariate_keys,n_male,male_pos,n_fem,fem_pos):
 
             # The range parameters. Units are RADIANS. 
             # 1 radian = the radius of the earth, about 6378.1 km
-            scale = pm.Exponential('scale_short', .1, value=.08)            
+            scale = pm.Exponential('scale', .1, value=.08)            
 
             # This parameter controls the degree of differentiability of the field.
             diff_degree = pm.Uniform('diff_degree', .01, 3)
 
             # The nugget variance.
-            V = pm.Exponential('V', .1, value=.1, observed=True)
+            V = pm.Exponential('V', .1, value=.1)
+
+            @pm.potential
+            def V_constraint(V=V):
+                if V<.1:
+                    return -np.inf
+                else:
+                    return 0
             
             m = pm.Uninformative('m',value=-25)
             @pm.deterministic(trace=False)
             def M(m=m):
                 return pm.gp.Mean(mean_fn, m=m)
-                
-            ceiling = pm.Beta('ceiling',10,50,value=.9999, observed=True)
-            
-            if constrained:
-                @pm.potential
-                def pripred_check(m=m,amp=amp,V=V):
-                    p_above = scipy.stats.distributions.norm.cdf(m-pm.logit(threshold_val), 0, np.sqrt(amp**2+V))
-                    if p_above <= max_p_above:
-                        return 0.
-                    else:
-                        return -np.inf
 
             # Create the covariance & its evaluation at the data locations.
             facdict = dict([(k,1.e6) for k in covariate_keys])
@@ -125,7 +117,7 @@ def make_model(lon,lat,input_data,covariate_keys,n_male,male_pos,n_fem,fem_pos):
             eps_p_f_d.append(pm.Normal('eps_p_f_%i'%i, sp_sub.f_eval[fi[sl]], 1./V, trace=False))            
 
             # The allele frequency
-            s_d.append(pm.Lambda('s_%i'%i,lambda lt=eps_p_f_d[-1], ceiling=ceiling: invlogit(lt)*ceiling,trace=False))
+            s_d.append(pm.Lambda('s_%i'%i,lambda lt=eps_p_f_d[-1]: invlogit(lt), trace=False))
             
             where_male = np.where(True-np.isnan(n_male[sl]))[0]
             where_fem = np.where(True-np.isnan(n_fem[sl]))[0]
@@ -142,5 +134,10 @@ def make_model(lon,lat,input_data,covariate_keys,n_male,male_pos,n_fem,fem_pos):
     def eps_p_f(eps_p_fd = eps_p_f_d):
         """Concatenated version of eps_p_f, for postprocessing & Gibbs sampling purposes"""
         return np.hstack(eps_p_fd)
+
+    # The heterozygote deficiency
+    @pm.deterministic
+    def het_def(het_def_d = het_def_d):
+        return np.hstack(het_def_d)
             
     return locals()
